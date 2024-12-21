@@ -1,56 +1,112 @@
-import { useRef, RefObject } from "react";
-import WebRTCClient from "./webrtc-client/WebRTCClient";
+import { useState } from "react";
+import RoomClient from "./webrtc-client/RoomClient";
+import "./styles.css";
+import { socketSend, socket } from "./webrtc-client/RoomClient";
+import { Consumer, Producer } from "mediasoup-client/lib/types";
 
-const webrtcclient = new WebRTCClient();
+const room = new RoomClient();
 
-// import { io, type Socket } from "socket.io-client";
-// const socket = io("ws://localhost:3001", { transports: ["websocket"] });
+// interface Peer {
+//   id: string;
+//   roomId: string;
+//   ioId: string;
+//   name: string;
+//   reducers: unknown[];
+//   consumers: unknown[];
+// }
 
-// socket.on("connect", async () => {
-//   console.log("connect", socket.id);
-// });
+// interface Room {
+//   id: string;
+//   peers: Peer[];
+// }
+
+interface CreateRoomResponse {
+  peerId: string;
+  roomId: string;
+  ioId: string;
+  status: "created" | "error";
+}
+
+interface ConnectRoomResponse {
+  peername: string;
+  peerId: string;
+  roomId: string;
+  ioId: string;
+  status: "connected" | "error";
+}
+
+interface SFUState {
+  peername: string;
+  peerId: string;
+  roomId: string;
+  ioId: string;
+  serverProducerIds: string[];
+}
 
 function App() {
-  const videoEl = useRef() as RefObject<HTMLVideoElement>;
+  const [SFUState, setSFUState] = useState<SFUState | null>(null);
+
+  const createNewRoomHandle = async () => {
+    try {
+      const response = await socketSend<SFUState>("createRoom", {
+        peer: {
+          name: "test peer",
+          ioId: socket.id,
+        },
+      });
+      console.log("response", response);
+      setSFUState(response);
+    } catch (err) {
+      console.log(err);
+    }
+
+    // setSFUState(response);
+
+    // if (response.peerId && response.roomId) {
+    //   webrtcclient.send(response.peerId, response.roomId);
+    // }
+  };
+
+  const connectPeerHandle = async () => {
+    try {
+      const response = await socketSend<ConnectRoomResponse>("connectRoom", {
+        name: "test peer",
+        ioId: socket.id,
+        roomId: "0",
+      });
+      console.log("response", response);
+      setSFUState({
+        peername: response.peername,
+        peerId: response.peerId,
+        roomId: response.roomId,
+        ioId: response.roomId,
+        serverProducerIds: [],
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   return (
     <div>
-      <ul>
-        <li>
-          <button
-            onClick={() => {
-              webrtcclient.send();
-            }}
-          >
-            Отправить
-          </button>
-        </li>
-        <li>
-          <button
-            onClick={() => {
-              console.log("subs");
-              webrtcclient.subscribe();
-            }}
-          >
-            принять
-          </button>
-        </li>
-        <li>
-          <button
-            onClick={() => {
-              webrtcclient.getVideo();
-            }}
-          >
-            получить видео
-          </button>
-        </li>
-      </ul>
-      <div className="">
-        <video autoPlay id="video" ref={videoEl}></video>
-      </div>
-      <br />
-      <div className="">
-        <video autoPlay id="video2"></video>
-      </div>
+      <button style={{ margin: "5px" }} onClick={createNewRoomHandle}>
+        1 Создать новую видеокомнату
+      </button>
+      <button style={{ margin: "5px" }} onClick={connectPeerHandle}>
+        2 Подключиться к комнате
+      </button>
+      <button
+        style={{ margin: "5px" }}
+        onClick={() => room.produce(SFUState!.roomId, SFUState!.peerId)}
+      >
+        3 Отправить Media
+      </button>
+      <button
+        style={{ margin: "5px" }}
+        onClick={() => room.subscribe(SFUState!.roomId, SFUState!.peerId)}
+      >
+        4 Получить меди
+      </button>
     </div>
   );
 }
