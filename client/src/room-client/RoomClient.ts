@@ -1,5 +1,4 @@
 import { Device } from "mediasoup-client";
-import { io, type Socket } from "socket.io-client";
 import {
   RtpCapabilities,
   Transport,
@@ -8,66 +7,41 @@ import {
   Consumer,
   Producer,
 } from "mediasoup-client/lib/types";
-import { SocketSendType, ErrorSocketType, isErrorSocketType } from "./model";
-
-export const socket = io("ws://localhost:3001");
-
-function socketPromise<T>(socket: Socket) {
-  return (type: string, data = {}): Promise<T> =>
-    new Promise((resolve, reject) => {
-      socket.emit(type, data, (res: T | ErrorSocketType) =>
-        isErrorSocketType(res) ? reject(res) : resolve(res)
-      );
-    });
-}
-
-export const socketSend: SocketSendType = socketPromise(socket);
-
-// type ActiveConsumerType = {
-//   peerId: string;
-//   peerName: string;
-//   roomId: string;
-//   consumers: {};
-// };
+import { KindType } from "./types";
+import { apiSend as socketSend } from "../api/api";
 
 type ProduserDataType = {
   roomId: string;
   peerId: string;
   peerName: string;
   id: string;
-  kind: "audio" | "video";
+  kind: KindType;
+};
+
+type RoomDataType = {
+  peerName: string;
+  peerId: string;
+  ioId: string;
+  roomId: string;
 };
 
 class RoomClient {
-  roomId?: string;
-  peerName?: string;
-  peerId?: string;
-  ioId?: string;
-
+  roomData?: RoomDataType;
   device?: Device;
   sendTransport?: Transport;
   recvTransport?: Transport;
-
   videoProducer?: Producer;
   audioProducer?: Producer;
-
   activeProducersData?: ProduserDataType[];
   activeConsumers?: Consumer[];
 
   constructor() {
-    this.roomId;
-    this.peerName;
-    this.peerId;
-    this.ioId;
-
+    this.roomData;
     this.device;
-
     this.sendTransport;
     this.recvTransport;
-
     this.videoProducer;
     this.audioProducer;
-
     this.activeProducersData = [];
     this.activeConsumers = [];
   }
@@ -75,7 +49,7 @@ class RoomClient {
   /**
    * Запросить список активных продюсеров (включая свой собственный) в пределах 1 комнаты
    */
-  async getProducers(roomId: string, peerId: string) {
+  private async getProducers(roomId: string, peerId: string) {
     return await socketSend<ProduserDataType[]>("getProducers", {
       roomId,
       peerId,
@@ -98,7 +72,11 @@ class RoomClient {
 
     this.device = new Device();
     const routerRtpCapabilities = await this.gerRouterRtpCapabilites();
-    await this.device.load({ routerRtpCapabilities });
+    try {
+      await this.device.load({ routerRtpCapabilities });
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   /**
@@ -112,7 +90,9 @@ class RoomClient {
       { appData: { roomId, peerId } }
     );
 
-    this.sendTransport = this.device.createSendTransport(params);
+    this.sendTransport = await this.device.createSendTransport(params);
+
+    this.connectProducerTransport(roomId, peerId);
   }
 
   /**
@@ -121,21 +101,25 @@ class RoomClient {
   connectProducerTransport(roomId: string, peerId: string) {
     if (!this.sendTransport) return;
 
-    const transport = this.sendTransport;
-    transport.on("connect", async ({ dtlsParameters }, callback, _errback) => {
-      await socketSend("connectProducerTransport", {
-        dtlsParameters,
-        appData: {
-          roomId,
-          peerId,
-        },
-      });
-      callback();
-    });
+    this.sendTransport.on(
+      "connect",
+      async ({ dtlsParameters }, callback, _errback) => {
+        console.log("sendTransport connect");
+        await socketSend("connectProducerTransport", {
+          dtlsParameters,
+          appData: {
+            roomId,
+            peerId,
+          },
+        });
+        callback();
+      }
+    );
 
-    transport.on(
+    this.sendTransport.on(
       "produce",
       async ({ kind, rtpParameters, appData }, callback, _errback) => {
+        console.log("sendTransport produce", kind);
         // appData передаем в sendTransport.produce()
         const data = await socketSend<{ id: string }>("createProducer", {
           kind,
@@ -161,6 +145,8 @@ class RoomClient {
       audioTrack: stream.getAudioTracks()[0],
     };
 
+    console.log("stream.getAudioTracks()", stream.getAudioTracks());
+
     return tracks;
   }
 
@@ -174,7 +160,9 @@ class RoomClient {
       "createConsumerTransport",
       { appData: { roomId, peerId } }
     );
-    this.recvTransport = this.device.createRecvTransport(transportOptions);
+    this.recvTransport = await this.device.createRecvTransport(
+      transportOptions
+    );
   }
 
   /**
@@ -184,6 +172,7 @@ class RoomClient {
     roomId: string,
     peerId: string
   ): Promise<string | undefined> {
+    console.log("connectRecvTransport", this.recvTransport);
     if (!this.recvTransport) return;
     // Событие автоматически генерируется mediasoup-client, когда требуется передать DTLS параметры на сервер.
     this.recvTransport.on(
@@ -213,10 +202,14 @@ class RoomClient {
       }
 
       this.recvTransport.on("connectionstatechange", async (state) => {
+        console.log('this.recvTransport.on("connectionstatechange"))', state);
         if (state === "connected") {
           // Генерируется после recvTransport.consume
           // Можно воспроизводить медиапотоки.
-          console.log("recvTransport: connected");
+          console.log(
+            "recvTransport: connected Можно воспроизводить медиапотоки."
+          );
+
           res("connected");
         }
       });
@@ -224,36 +217,27 @@ class RoomClient {
   }
 
   /**
-   * Создает собственные Consumers
+   * Создает Consumers
    */
-  async createConsumer(produerData: ProduserDataType) {
-    console.log("createSelfConsumer");
+  async createConsumer(producerData: ProduserDataType) {
+    console.log("createConsumer start...");
     if (!this.device || !this.recvTransport) return;
-    const { roomId, peerId } = produerData;
+    const { roomId } = producerData;
     const { rtpCapabilities } = this.device;
+
     try {
       const response = await socketSend<ConsumerOptions>("createConsumer", {
         rtpCapabilities,
         appData: {
           roomId,
-          peerId,
-          producerId: produerData.id,
-          mediaTag: produerData.kind,
+          peerId: this.roomData?.peerId,
+          producerId: producerData.id,
+          mediaTag: producerData.kind,
         },
       });
 
       const { id, rtpParameters, kind, producerId } = response;
-
-      if (kind === "video") {
-        const videoConsumer = await this.recvTransport!.consume({
-          id,
-          rtpParameters,
-          producerId,
-          kind,
-        });
-
-        this.activeConsumers?.push(videoConsumer);
-      }
+      console.log("response", producerId);
 
       if (kind === "audio") {
         const audioConsumer = await this.recvTransport!.consume({
@@ -266,8 +250,17 @@ class RoomClient {
         this.activeConsumers?.push(audioConsumer);
       }
 
-      console.log("response", response);
-      console.log("this.activeConsumers", this.activeConsumers);
+      if (kind === "video") {
+        const videoConsumer = await this.recvTransport!.consume({
+          id,
+          rtpParameters,
+          producerId,
+          kind,
+        });
+
+        this.activeConsumers?.push(videoConsumer);
+      }
+      console.log("createConsumer end");
     } catch (error) {
       console.log("Oшибка создания Consumer-а", error);
     }
@@ -287,30 +280,26 @@ class RoomClient {
       return false;
     }
 
-    this.connectProducerTransport(roomId, peerId);
-
     try {
-      const { videoTrack, audioTrack } = await this.getMediaTracks();
-
-      this.videoProducer = await this.sendTransport.produce({
-        track: videoTrack,
-        appData: {
-          mediaTag: "camera",
-          peerId,
-          roomId,
-        },
-      });
+      const { audioTrack, videoTrack } = await this.getMediaTracks();
 
       this.audioProducer = await this.sendTransport.produce({
-        track: audioTrack,
+        track: audioTrack.clone(),
         appData: {
-          mediaTag: "mic",
+          mediaTag: "audio",
           peerId,
           roomId,
         },
       });
 
-      // this.subscribeEventsProducer(this.producer);
+      this.videoProducer = await this.sendTransport.produce({
+        track: videoTrack.clone(),
+        appData: {
+          mediaTag: "video",
+          peerId,
+          roomId,
+        },
+      });
     } catch (e) {
       console.log("catch", e);
     }
@@ -318,6 +307,7 @@ class RoomClient {
     return await new Promise((res) => {
       this.sendTransport!.on("connectionstatechange", (state) => {
         if (state === "connected") {
+          console.log("sendTransport state === connected");
           res(true);
         }
       });
@@ -347,39 +337,59 @@ class RoomClient {
     }
 
     await this.createRecvTransport(roomId, peerId);
-    const activeProducers = await this.getProducers(roomId, peerId);
-    this.activeProducersData = activeProducers;
-    console.log("activeProducers", this.activeProducersData);
-    // Создание консумеров
-    for await (const producerData of this.activeProducersData) {
-      if (producerData.peerId !== peerId) {
+    this.activeProducersData = await this.getProducers(roomId, peerId);
+
+    for (const producerData of this.activeProducersData) {
+      if (producerData.peerId !== this.roomData?.peerId) {
         this.createConsumer(producerData);
       }
     }
-    console.log(this.activeConsumers);
-    // Соединение Consumer Transport
+
     await this.connectRecvTransport(roomId, peerId);
+    return roomId;
   }
 
-  // async connect(roomId: string, peerId: string) {
-  //   console.log("produce....");
-  //   await this.produce(roomId, peerId);
-  //   console.log("subscribe....");
-  //   await this.subscribe(roomId, peerId);
-  // }
+  async connectToRoom(peerName = "testPeer 2", roomId = "0") {
+    try {
+      const roomData = await socketSend<RoomDataType>("connectRoom", {
+        peerName,
+        roomId,
+      });
 
-  // async getVideo() {
-  //   const el = document.querySelector("#video") as HTMLVideoElement;
-  //   const stream = await navigator.mediaDevices.getUserMedia({
-  //     video: true,
-  //     audio: true,
-  //   });
-  //   el.srcObject = stream;
-  // }
+      this.roomData = roomData;
+      if (!this.roomData) return;
+      await this.subscribe(this.roomData.roomId, this.roomData.peerId);
+      return this.roomData.roomId;
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
-  // Новые методы
+  private async createNewRoom(
+    peerName: string
+  ): Promise<RoomDataType | undefined> {
+    try {
+      const response = await socketSend<RoomDataType>("createRoom", {
+        peerName,
+      });
+      this.roomData = response;
+    } catch (e) {
+      console.log(e);
+    }
 
-  // 1
+    return this.roomData;
+  }
+
+  async createAndConnectRoom(peerName = "testPeer 1") {
+    const roomdata = await this.createNewRoom(peerName);
+    if (roomdata?.roomId && roomdata?.peerId) {
+      console.log("produce start");
+      await this.produce(roomdata.roomId, roomdata.peerId);
+      console.log("produce end");
+      // await this.subscribe(roomdata.roomId, roomdata.peerId);
+      return roomdata?.roomId;
+    }
+  }
 }
 
 export default RoomClient;

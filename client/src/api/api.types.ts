@@ -1,7 +1,7 @@
 export type SocketSendType = <T>(type: string, data?: object) => Promise<T>;
 
 export type ErrorSocketType = {
-  error: true;
+  error: boolean;
   message: string;
   code: 500;
 };
@@ -9,3 +9,5 @@ export type ErrorSocketType = {
 export const isErrorSocketType = (a: any): a is ErrorSocketType => {
   return a?.error ? true : false;
 };
+
+export type KindType = "audio" | "video";

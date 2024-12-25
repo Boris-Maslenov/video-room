@@ -1,116 +1,61 @@
 import { useState } from "react";
-import RoomClient from "./webrtc-client/RoomClient";
 import "./styles.css";
-import { socketSend, socket } from "./webrtc-client/RoomClient";
-import { Consumer, Producer } from "mediasoup-client/lib/types";
+import { useParams } from "./hooks/useParams";
+import Room from "./components/room/Room";
+import Dashboard from "./components/dashboard/Dashboard";
+// import { apiSend } from "./api/api";
+import RoomClient from "./room-client/RoomClient";
+import { appendSearchParams } from "./utils/appendSearchParams";
+import { ConnectStatysType } from "./components/room/Room.types";
 
-const room = new RoomClient();
+export const roomManager = new RoomClient();
 
-// interface Peer {
-//   id: string;
-//   roomId: string;
-//   ioId: string;
-//   name: string;
-//   reducers: unknown[];
-//   consumers: unknown[];
-// }
+const App = () => {
+  const [connectStatus, setConnectStatus] =
+    useState<ConnectStatysType>("disconnect");
+  const [_, setUpdate] = useState(true);
+  const [room] = useParams("room");
 
-// interface Room {
-//   id: string;
-//   peers: Peer[];
-// }
-
-interface CreateRoomResponse {
-  peerId: string;
-  roomId: string;
-  ioId: string;
-  status: "created" | "error";
-}
-
-interface ConnectRoomResponse {
-  peername: string;
-  peerId: string;
-  roomId: string;
-  ioId: string;
-  status: "connected" | "error";
-}
-
-interface SFUState {
-  peername: string;
-  peerId: string;
-  roomId: string;
-  ioId: string;
-  serverProducerIds: string[];
-}
-
-function App() {
-  const [SFUState, setSFUState] = useState<SFUState | null>(null);
-
-  const createNewRoomHandle = async () => {
-    try {
-      const response = await socketSend<SFUState>("createRoom", {
-        peer: {
-          name: "test peer",
-          ioId: socket.id,
-        },
-      });
-      console.log("response", response);
-      setSFUState(response);
-    } catch (err) {
-      console.log(err);
-    }
-
-    // setSFUState(response);
-
-    // if (response.peerId && response.roomId) {
-    //   webrtcclient.send(response.peerId, response.roomId);
+  const connectToRoomHandle = async () => {
+    // const roomId = await roomManager.connectToRoom();
+    // console.log("connectToRoomHandle", roomId);
+    // if (roomId) {
+    //   setConnectStatus("connect");
+    //   appendSearchParams("room", roomId);
     // }
+
+    await roomManager.connectToRoom();
+
+    setConnectStatus("connect");
+    appendSearchParams("room", "0");
+    console.log(roomManager.activeConsumers);
   };
 
-  const connectPeerHandle = async () => {
-    try {
-      const response = await socketSend<ConnectRoomResponse>("connectRoom", {
-        name: "test peer",
-        ioId: socket.id,
-        roomId: "0",
-      });
-      console.log("response", response);
-      setSFUState({
-        peername: response.peername,
-        peerId: response.peerId,
-        roomId: response.roomId,
-        ioId: response.roomId,
-        serverProducerIds: [],
-      });
-    } catch (err) {
-      console.log(err);
-    }
+  const createNewRoomHandle = async () => {
+    // const roomId = await roomManager.createAndConnectRoom();
+    // if (roomId) {
+    //   appendSearchParams("room", roomId);
+    //   // setUpdate((state) => !state);
+    //   setConnectStatus("connect");
+    // }
+
+    roomManager.createAndConnectRoom();
   };
 
   return (
-    <div>
-      <button style={{ margin: "5px" }} onClick={createNewRoomHandle}>
-        1 Создать новую видеокомнату
-      </button>
-      <button style={{ margin: "5px" }} onClick={connectPeerHandle}>
-        2 Подключиться к комнате
-      </button>
-      <button
-        style={{ margin: "5px" }}
-        onClick={() => room.produce(SFUState!.roomId, SFUState!.peerId)}
-      >
-        3 Отправить Media
-      </button>
-      <button
-        style={{ margin: "5px" }}
-        onClick={() => room.subscribe(SFUState!.roomId, SFUState!.peerId)}
-      >
-        4 Получить меди
-      </button>
+    <div className="app">
+      <div className="app-inner">
+        {room && connectStatus === "connect" ? (
+          <Room room={room} consumers={roomManager.activeConsumers ?? []} />
+        ) : (
+          <Dashboard
+            onCreateRoom={createNewRoomHandle}
+            onConnectToRoom={connectToRoomHandle}
+          />
+        )}
+      </div>
     </div>
   );
-}
+};
 
 export default App;
-
-// socket.to(socketId).emit()
