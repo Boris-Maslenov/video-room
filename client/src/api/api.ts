@@ -5,9 +5,9 @@ import {
   isErrorSocketType,
 } from "./api.types";
 
-// const WS_URL = "ws://localhost:3001";
-const WS_URL = "ws://192.168.0.106:3001";
-const socket = io(WS_URL);
+const WS_URL = "ws://localhost:3001";
+// const WS_URL = "ws://192.168.0.106:3001";
+export const socket = io(WS_URL);
 
 const socketPromise = <T>(socket: Socket) => {
   return (type: string, data = {}): Promise<T> =>

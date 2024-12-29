@@ -1,7 +1,10 @@
-import { useState, useRef, useEffect, RefObject, FC } from "react";
-import { Consumer } from "mediasoup-client/lib/types";
+import { useRef, useEffect, RefObject, FC } from "react";
+import { MediaStreamData } from "../../room-client/types";
 
-const ConsumerRenderer: FC<{ stream: MediaStream }> = ({ stream }) => {
+const ConsumerRenderer: FC<{ stream: MediaStream; isSelf: boolean }> = ({
+  stream,
+  isSelf,
+}) => {
   const mediaElRef = useRef() as RefObject<HTMLVideoElement>;
 
   useEffect(() => {
@@ -12,10 +15,9 @@ const ConsumerRenderer: FC<{ stream: MediaStream }> = ({ stream }) => {
   }, [mediaElRef.current]);
 
   return (
-    <li style={{ width: "200px", height: "200px" }}>
+    <li className={"media-block"}>
       <video
-        id={stream.id}
-        style={{ width: "100%", height: "200px" }}
+        className={isSelf ? "media-elem media-elem__self" : "media-elem"}
         autoPlay
         ref={mediaElRef}
       ></video>
@@ -25,31 +27,20 @@ const ConsumerRenderer: FC<{ stream: MediaStream }> = ({ stream }) => {
 
 type RoomProps = {
   room: string;
-  consumers: Consumer[];
+  consumersData: MediaStreamData[];
 };
 
-const Room: FC<RoomProps> = ({ consumers }) => {
-  console.log("Room", consumers);
-  const [mediaTracks, setMediaTracks] = useState<MediaStream[]>([]);
-  const mediaStreams = consumers.map(
-    (consumer) => new MediaStream([consumer.track])
-  );
+const Room: FC<RoomProps> = ({ consumersData }) => {
+  console.log("Room", "consumersData:", consumersData);
 
   return (
-    <ul
-      style={{
-        padding: 0,
-        margin: 0,
-        listStyleType: "none",
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "10px",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      {mediaStreams.map((stream, i) => (
-        <ConsumerRenderer key={stream.id + i} stream={stream} />
+    <ul className="media-streems">
+      {consumersData.map((data, key) => (
+        <ConsumerRenderer
+          key={key}
+          stream={new MediaStream(data.mediaTracks)}
+          isSelf={data.isSelf}
+        />
       ))}
     </ul>
   );

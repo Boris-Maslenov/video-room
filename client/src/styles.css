@@ -1,44 +1,67 @@
 html,
 body {
-  height: 100vh;
+  height: 100%;
+  max-height: 100%;
   padding: 0;
   margin: 0;
 }
 
 * {
   box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  padding-inline-start: 0;
+  margin-block-start: 0;
 }
 
-.app-wrap {
-  /* background: #e5eaf0; */
-  background: #f0e2f8;
-  /* background: #c8b6d4; */
-  /* background: #f2f2f0; */
-  /* background: #ededf5; */
-  height: 100vh;
-  max-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+ul > li {
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
 }
 
-.app-wrap > * {
-  position: relative;
+*::marker {
+  display: none;
 }
 
 .app {
-  height: calc(100% - 40px);
-  display: flex;
-  /* justify-content: center; */
-  align-items: center;
+  display: grid;
+  height: 100%;
+  padding: 0 15px;
 }
 
 .app-inner {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  background: #f0e2f8;
+}
+
+.media-streems {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+
+  grid-gap: 15px;
+  grid-auto-flow: dense;
+
+  justify-content: center; /* Центровка всей сетки */
+  justify-items: center; /* Центровка содержимого внутри ячеек */
+}
+
+.media-block {
   width: 100%;
   height: 100%;
+}
+
+.media-elem {
+  border-radius: 8px;
+  object-fit: cover;
+  width: 100%;
+  max-width: 100%;
   max-height: 100%;
-  overflow-y: auto;
-  display: flex;
-  justify-content: center;
-  /*align-items: center; */
+}
+
+.media-elem__self {
+  transform: scaleX(-1);
 }
