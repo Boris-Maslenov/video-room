@@ -1,28 +1,21 @@
-import { useEffect, useState } from "react";
 import "./styles.css";
+import { useEffect, useState } from "react";
 import { useParams } from "./hooks/useParams";
 import Room from "./components/room/Room";
 import Dashboard from "./components/dashboard/Dashboard";
-// import { apiSend } from "./api/api";
 import RoomClient from "./room-client/RoomClient";
 import { appendSearchParams } from "./utils/appendSearchParams";
-// import { ConnectStatysType } from "./components/room/Room.types";
-import { RoomDataType, MediaStreamData } from "./room-client/types";
-import { Consumer } from "mediasoup-client/lib/Consumer";
+import { RoomDataType, MediaStreamDataType } from "./room-client/types";
+import { debaunce } from "./utils/debounce";
 
 export const roomManager = new RoomClient();
 
-roomManager.on("room-connected", () => console.log("room-connected"));
-roomManager.on("room-connecting", () => console.log("room-connecting"));
-// roomManager.on("update-peers", (activeConsumers: Consumer[]) =>
-//   console.log("update-peers", activeConsumers)
-// );
-// roomManager.on("produce", () => console.log("produce"));
+roomManager.on("update-peers", () => {});
 
 const App = () => {
   const [room] = useParams("room");
   const [roomData, setRoomData] = useState<RoomDataType>();
-  const [consumersData, setConsumersData] = useState<MediaStreamData[]>([]);
+  const [consumersData, setConsumersData] = useState<MediaStreamDataType[]>([]);
 
   const connectToRoomHandle = async () => {
     await roomManager.joinToRoom();
@@ -32,16 +25,20 @@ const App = () => {
   };
 
   useEffect(() => {
-    roomManager.on("room-connected", (roomData: RoomDataType) => {
+    roomManager.on("room-connected", (roomData) => {
+      console.log("room-connected");
       const { roomId } = roomData;
       appendSearchParams("room", roomId);
       setRoomData(roomData);
       setConsumersData(roomManager.getMediaStreamsData());
     });
 
-    roomManager.on("update-peers", (mediaStreams: MediaStreamData[]) => {
-      setConsumersData(mediaStreams);
-    });
+    roomManager.on(
+      "update-peers",
+      debaunce((mediaStreams: MediaStreamDataType[]) => {
+        setConsumersData(mediaStreams);
+      }, 1000)
+    );
 
     return () => {
       roomManager.leaveRoom();

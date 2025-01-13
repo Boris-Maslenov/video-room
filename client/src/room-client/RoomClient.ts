@@ -9,19 +9,23 @@ import {
 import {
   ProduserDataType,
   RoomDataType,
-  MediaStreamData,
+  MediaStreamDataType,
   RoomEvents,
   RoomEventsType,
   ActiveConsumerType,
 } from "./types";
 import { socket, apiSend as socketSend } from "../api/api";
 
-socket.on("message", (message) => {
-  console.log("Получено сообщение:", message);
-});
+
+type ServerEventsType = {
+  message: string;
+  data: { peer: { id: string } };
+  type: string;
+};
 
 class RoomClient {
-  events: Partial<Record<RoomEvents, RoomEventsType[RoomEvents]>>;
+  // events: Partial<Record<RoomEvents, RoomEventsType[RoomEvents]>>;
+  events: { [K in keyof RoomEventsType]?: RoomEventsType[K] }
   localMediaStream?: MediaStream;
   roomData?: RoomDataType;
   device?: Device;
@@ -43,6 +47,35 @@ class RoomClient {
     this.activeProducersData = [];
     this.activeConsumers = [];
     this.events = {};
+
+    socket.on("server-event", (response: ServerEventsType) => {
+      console.log("Получено сообщение:", response.message);
+      switch (response.type) {
+        case "connect-peer": {
+          console.log(
+            "connect-peer: ",
+            response.data.peer?.videoProducer?.kind
+          );
+
+          this.subscribe("update-peers", this.getMediaStreamsData());
+          break;
+        }
+        case "disconnect-peer": {
+          console.log("disconnect-peer:", response);
+          this.activeConsumers = this.activeConsumers?.filter(
+            (consumer) =>
+              consumer.appData.producerData.peerId !== response.data.peer.id
+          );
+
+          this.subscribe("update-peers", this.getMediaStreamsData());
+
+          break;
+        }
+        default: {
+          return "";
+        }
+      }
+    });
   }
 
   /**
@@ -131,22 +164,22 @@ class RoomClient {
     );
   }
 
-  getMediaStreamsData(): MediaStreamData[] {
+  getMediaStreamsData(): MediaStreamDataType[] {
     if (!this.roomData || !this.localMediaStream) return [];
 
-    const selfMediaStreemData: MediaStreamData = {
-      peerName: this.roomData?.peerName,
-      peerId: this.roomData?.peerId,
-      ioId: this.roomData?.ioId,
+    const selfMediaStreemData: MediaStreamDataType = {
+      peerName: this.roomData.peerName,
+      peerId: this.roomData.peerId,
+      ioId: this.roomData.ioId,
       isCreator: false,
       isJoined: true,
       isSelf: true,
-      mediaTracks: this.localMediaStream?.getTracks(),
+      mediaTracks: this.localMediaStream.getTracks(),
       roomId: this.roomData.roomId,
     };
 
     const prepareData =
-      this.activeConsumers?.reduce<Record<string, MediaStreamData>>(
+      this.activeConsumers?.reduce<Record<string, MediaStreamDataType>>(
         (acc, current) => {
           const producerData = current.appData.producerData;
 
@@ -253,25 +286,21 @@ class RoomClient {
    */
   async createConsumer(producerData: ProduserDataType) {
     if (!this.device || !this.recvTransport) return;
-    console.log("producerData", producerData);
     const { roomId } = producerData;
     const { rtpCapabilities } = this.device;
 
     try {
-      const response = await socketSend<ConsumerOptions>("createConsumer", {
-        rtpCapabilities,
-        appData: {
-          roomId,
-          peerId: this.roomData?.peerId,
-          producerId: producerData.id,
-          mediaTag: producerData.kind,
-          producerData,
-        },
-      });
-
-      const { id, rtpParameters, kind, producerId, appData } = response;
-
-      console.log("response", response);
+      const { id, rtpParameters, kind, producerId, appData } =
+        await socketSend<ConsumerOptions>("createConsumer", {
+          rtpCapabilities,
+          appData: {
+            roomId,
+            peerId: this.roomData?.peerId,
+            producerId: producerData.id,
+            mediaTag: producerData.kind,
+            producerData,
+          },
+        });
 
       if (kind === "audio") {
         const audioConsumer = await this.recvTransport!.consume({
@@ -296,6 +325,7 @@ class RoomClient {
 
         this.activeConsumers?.push(videoConsumer as ActiveConsumerType);
       }
+
       this.subscribe("update-peers", this.getMediaStreamsData());
     } catch (error) {
       console.log("Oшибка создания Consumer-а", error);
@@ -344,7 +374,6 @@ class RoomClient {
       this.sendTransport!.on("connectionstatechange", (state) => {
         if (state === "connected") {
           this.subscribe("room-connected", this.roomData!);
-          // this.subscribe("produce");
           res(true);
         }
       });
@@ -442,7 +471,7 @@ class RoomClient {
     this.activeConsumers = [];
   }
 
-  on(event: RoomEvents, callback: RoomEventsType[RoomEvents]) {
+  on<K extends keyof RoomEventsType>(event: K, callback: RoomEventsType[K]): void {
     this.events[event] = callback;
   }
 

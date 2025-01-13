@@ -1,5 +1,5 @@
 import { useRef, useEffect, RefObject, FC } from "react";
-import { MediaStreamData } from "../../room-client/types";
+import { MediaStreamDataType } from "../../room-client/types";
 
 const ConsumerRenderer: FC<{ stream: MediaStream; isSelf: boolean }> = ({
   stream,
@@ -27,7 +27,7 @@ const ConsumerRenderer: FC<{ stream: MediaStream; isSelf: boolean }> = ({
 
 type RoomProps = {
   room: string;
-  consumersData: MediaStreamData[];
+  consumersData: MediaStreamDataType[];
 };
 
 const Room: FC<RoomProps> = ({ consumersData }) => {
@@ -37,7 +37,7 @@ const Room: FC<RoomProps> = ({ consumersData }) => {
     <ul className="media-streems">
       {consumersData.map((data, key) => (
         <ConsumerRenderer
-          key={key}
+          key={key + data.peerId}
           stream={new MediaStream(data.mediaTracks)}
           isSelf={data.isSelf}
         />
