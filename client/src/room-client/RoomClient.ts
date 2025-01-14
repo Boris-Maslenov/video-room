@@ -75,12 +75,12 @@ class RoomClient {
             );
           }
 
-          for (const q of response.data.activeProducersData) {
-            await this.createConsumer(q);
+          for (const p of response.data.activeProducersData) {
+            await this.createConsumer(p);
           }
 
           this.addSlot(response.data.peer.id);
-          this.subscribe("update-peers", [...this.mediaSlots]);
+          this.subscribe("update-peers", this.mediaSlots.concat());
 
           break;
         }
@@ -190,8 +190,26 @@ class RoomClient {
     );
   }
 
+  private addSelfSlot() {
+    if (!this.roomData || !this.localMediaStream) return;
+
+    const selfMediaSlot = {
+      peerName: this.roomData.peerName,
+      peerId: this.roomData.peerId,
+      ioId: this.roomData.ioId,
+      isCreator: false,
+      isJoined: true,
+      isSelf: true,
+      mediaStream: new MediaStream(this.localMediaStream.getVideoTracks()),
+      roomId: this.roomData.roomId,
+    };
+
+    this.mediaSlots = this.mediaSlots.concat(selfMediaSlot);
+  }
+
   private createSlotFromConsumers(
-    consumers: ActiveConsumerType[]
+    consumers: ActiveConsumerType[],
+    isSelf = false
   ): MediaSlotDataType | undefined {
     if (!consumers?.length) return;
 
@@ -206,7 +224,7 @@ class RoomClient {
           isCreator: false,
           isJoined: true,
           roomId: current.appData.producerData.roomId,
-          isSelf: false,
+          isSelf,
           mediaStream: new MediaStream([current.track]),
         };
       }
@@ -410,6 +428,7 @@ class RoomClient {
     return await new Promise((res) => {
       this.sendTransport!.on("connectionstatechange", (state) => {
         if (state === "connected") {
+          this.addSelfSlot();
           this.subscribe("room-connected", this.roomData!);
           res(true);
         }
@@ -450,7 +469,7 @@ class RoomClient {
       }
     }
     this.fillSlots(this.activeConsumers);
-    this.subscribe("update-peers", [...this.mediaSlots]);
+    this.subscribe("update-peers", this.mediaSlots.concat());
   }
 
   async joinToRoom(peerName = "testPeer 2", roomId = "0") {
@@ -508,6 +527,7 @@ class RoomClient {
     this.audioProducer = undefined;
     // this.activeProducersData = [];
     this.activeConsumers = [];
+    this.mediaSlots = [];
   }
 
   on<K extends keyof RoomEventsType>(

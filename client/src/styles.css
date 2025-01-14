@@ -28,14 +28,14 @@ ul > li {
 .app {
   display: grid;
   height: 100%;
-  padding: 0 15px;
+  /* padding: 0 15px; */
 }
 
 .app-inner {
   display: grid;
   grid-template-columns: 1fr;
   align-items: center;
-  background: #f0e2f8;
+  background: #523857;
 }
 
 .media-streems {
@@ -65,3 +65,18 @@ ul > li {
 .media-elem__self {
   transform: scaleX(-1);
 }
+
+.center-content {
+  display: flex;
+  justify-content: center;
+}
+
+.btn {
+  background: #bf8709;
+}
+
+/* #BF8709
+#EAC57D
+#B9BBDE
+#807490
+#523857 */

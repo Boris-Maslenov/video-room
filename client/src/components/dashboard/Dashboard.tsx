@@ -9,7 +9,7 @@ interface DashboardProps {
 const Dashboard: FC<DashboardProps> = ({ onCreateRoom, onConnectToRoom }) => {
   const [room] = useParams("room");
   return (
-    <div>
+    <div className="center-content">
       <button onClick={onCreateRoom} disabled={!!room}>
         создать комнату
       </button>
