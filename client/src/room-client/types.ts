@@ -22,6 +22,18 @@ export type MediaStreamDataType = {
   isSelf: boolean;
 };
 
+export type MediaSlotDataType = {
+  peerName: string;
+  peerId: string;
+  ioId: string;
+  isCreator: boolean;
+  isJoined: boolean;
+ //  mediaTracks: MediaStreamTrack[];
+  mediaStream: MediaStream;
+  roomId: string;
+  isSelf: boolean;
+};
+
 export type RoomDataType = {
   peerName: string;
   peerId: string;
@@ -32,7 +44,7 @@ export type RoomDataType = {
 export type RoomEventsType = {
   "room-connected": (roomData: RoomDataType) => void;
   "room-connecting": () => void;
-  "update-peers": (mediaStreams: MediaStreamDataType[]) => void;
+  "update-peers": (mediaSlots: MediaSlotDataType[]) => void;
   "room-leave": () => void;
 };
 

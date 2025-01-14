@@ -13,6 +13,7 @@ import {
   RoomEvents,
   RoomEventsType,
   ActiveConsumerType,
+  MediaSlotDataType,
 } from "./types";
 import { socket, apiSend as socketSend } from "../api/api";
 
@@ -43,6 +44,7 @@ class RoomClient {
   audioProducer?: Producer;
   // activeProducersData: ProduserDataType[];
   activeConsumers: ActiveConsumerType[];
+  mediaSlots: MediaSlotDataType[];
 
   constructor() {
     this.localMediaStream;
@@ -55,7 +57,7 @@ class RoomClient {
     // this.activeProducersData = [];
     this.activeConsumers = [];
     this.events = {};
-    // this.peers = [];
+    this.mediaSlots = [];
 
     socket.on("server-event", async (response: ServerEventsType) => {
       switch (response.type) {
@@ -77,8 +79,9 @@ class RoomClient {
             await this.createConsumer(q);
           }
 
-          console.log("activeConsumers 111", this.activeConsumers);
-          this.subscribe("update-peers", this.getMediaStreamsData());
+          this.addSlot(response.data.peer.id);
+          this.subscribe("update-peers", [...this.mediaSlots]);
+
           break;
         }
         case "disconnect-peer": {
@@ -87,8 +90,9 @@ class RoomClient {
             (consumer) =>
               consumer.appData.producerData.peerId !== response.data.peer.id
           );
+          this.deleteSlot(response.data.peer.id);
+          this.subscribe("update-peers", this.mediaSlots);
 
-          this.subscribe("update-peers", this.getMediaStreamsData());
           break;
         }
         default: {
@@ -186,46 +190,57 @@ class RoomClient {
     );
   }
 
-  getMediaStreamsData(): MediaStreamDataType[] {
-    if (!this.roomData || !this.localMediaStream) return [];
+  private createSlotFromConsumers(
+    consumers: ActiveConsumerType[]
+  ): MediaSlotDataType | undefined {
+    if (!consumers?.length) return;
 
-    const selfMediaStreemData: MediaStreamDataType = {
-      peerName: this.roomData.peerName,
-      peerId: this.roomData.peerId,
-      ioId: this.roomData.ioId,
-      isCreator: false,
-      isJoined: true,
-      isSelf: true,
-      mediaTracks: this.localMediaStream.getVideoTracks(),
-      roomId: this.roomData.roomId,
-    };
+    return consumers.reduce((acc, current) => {
+      if (acc?.peerId) {
+        acc.mediaStream.addTrack(current.track);
+      } else {
+        acc = {
+          peerName: current.appData.producerData.peerName,
+          peerId: current.appData.producerData.peerId,
+          ioId: current.appData.producerData.ioId,
+          isCreator: false,
+          isJoined: true,
+          roomId: current.appData.producerData.roomId,
+          isSelf: false,
+          mediaStream: new MediaStream([current.track]),
+        };
+      }
+      return acc;
+    }, {} as MediaSlotDataType);
+  }
 
-    const prepareData =
-      this.activeConsumers?.reduce<Record<string, MediaStreamDataType>>(
-        (acc, current) => {
-          const producerData = current.appData.producerData;
+  private deleteSlot(id: string) {
+    this.mediaSlots = this.mediaSlots.filter((slot) => slot.peerId !== id);
+  }
 
-          if (producerData.peerId in acc) {
-            acc[producerData.peerId].mediaTracks.push(current.track);
-          } else {
-            acc[producerData.peerId] = {
-              peerName: producerData.peerName,
-              peerId: producerData.peerId,
-              ioId: producerData.ioId,
-              isCreator: false,
-              isJoined: true,
-              roomId: producerData.roomId,
-              mediaTracks: [current.track],
-              isSelf: false,
-            };
-          }
+  private addSlot(id: string) {
+    const consumers = this.activeConsumers.filter(
+      (consumer) => consumer.appData.producerData.peerId === id
+    );
 
-          return acc;
-        },
-        {}
-      ) ?? {};
+    if (consumers.length) {
+      const slot = this.createSlotFromConsumers(consumers);
+      slot && this.mediaSlots.push(slot);
+    }
+  }
 
-    return [selfMediaStreemData].concat(Object.values(prepareData));
+  private fillSlots(data: ActiveConsumerType[]) {
+    const ids = data.reduce<string[]>((acc, currnt) => {
+      if (acc.includes(currnt.appData.producerData.peerId)) {
+        return acc;
+      }
+      acc.push(currnt.appData.producerData.peerId);
+      return acc;
+    }, []);
+
+    ids.forEach((id) => {
+      this.addSlot(id);
+    });
   }
 
   /**
@@ -434,7 +449,8 @@ class RoomClient {
         await this.createConsumer(producerData);
       }
     }
-    this.subscribe("update-peers", this.getMediaStreamsData());
+    this.fillSlots(this.activeConsumers);
+    this.subscribe("update-peers", [...this.mediaSlots]);
   }
 
   async joinToRoom(peerName = "testPeer 2", roomId = "0") {

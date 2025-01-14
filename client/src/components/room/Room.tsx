@@ -1,44 +1,42 @@
-import { useRef, useEffect, RefObject, FC } from "react";
-import { MediaStreamDataType } from "../../room-client/types";
+import { useRef, useEffect, RefObject, FC, memo } from "react";
+import { MediaSlotDataType } from "../../room-client/types";
 
-const ConsumerRenderer: FC<{ stream: MediaStream; isSelf: boolean }> = ({
-  stream,
-  isSelf,
-}) => {
-  const mediaElRef = useRef() as RefObject<HTMLVideoElement>;
+const ConsumerRenderer: FC<{ stream: MediaStream; isSelf: boolean }> = memo(
+  ({ stream, isSelf }) => {
+    const mediaElRef = useRef() as RefObject<HTMLVideoElement>;
 
-  useEffect(() => {
-    if (mediaElRef.current) {
-      mediaElRef.current.srcObject = stream;
-      mediaElRef.current.playsInline = true;
-    }
-  }, [mediaElRef.current]);
+    useEffect(() => {
+      if (mediaElRef.current) {
+        mediaElRef.current.srcObject = stream;
+        mediaElRef.current.playsInline = true;
+      }
+    }, [mediaElRef.current]);
 
-  return (
-    <li className={"media-block"}>
-      <video
-        className={isSelf ? "media-elem media-elem__self" : "media-elem"}
-        autoPlay
-        ref={mediaElRef}
-      ></video>
-    </li>
-  );
-};
+    return (
+      <li className={"media-block"}>
+        <video
+          className={isSelf ? "media-elem media-elem__self" : "media-elem"}
+          autoPlay
+          ref={mediaElRef}
+        ></video>
+      </li>
+    );
+  }
+);
 
 type RoomProps = {
   room: string;
-  consumersData: MediaStreamDataType[];
+  mediaSlots: MediaSlotDataType[];
 };
 
-const Room: FC<RoomProps> = ({ consumersData }) => {
-  console.log("Room", "consumersData:", consumersData);
-
+const Room: FC<RoomProps> = ({ mediaSlots }) => {
+  console.log("render Room", "mediaSlots", mediaSlots);
   return (
     <ul className="media-streems">
-      {consumersData.map((data, key) => (
+      {mediaSlots.map((data, key) => (
         <ConsumerRenderer
           key={key + data.peerId}
-          stream={new MediaStream(data.mediaTracks)}
+          stream={data.mediaStream}
           isSelf={data.isSelf}
         />
       ))}
