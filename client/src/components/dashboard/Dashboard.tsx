@@ -1,5 +1,6 @@
 import { FC } from "react";
 import { useParams } from "../../hooks/useParams";
+import Button from "../reused/button/Button";
 
 interface DashboardProps {
   onCreateRoom: () => void;
@@ -10,12 +11,13 @@ const Dashboard: FC<DashboardProps> = ({ onCreateRoom, onConnectToRoom }) => {
   const [room] = useParams("room");
   return (
     <div className="center-content">
-      <button onClick={onCreateRoom} disabled={!!room}>
+      <Button onClick={onCreateRoom} disabled={!!room}>
         создать комнату
-      </button>
-      <button onClick={onConnectToRoom} disabled={!room}>
+      </Button>
+
+      <Button onClick={onConnectToRoom} disabled={!room}>
         подключиться
-      </button>
+      </Button>
     </div>
   );
 };

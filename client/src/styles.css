@@ -69,14 +69,39 @@ ul > li {
 .center-content {
   display: flex;
   justify-content: center;
+  column-gap: 5px;
 }
 
 .btn {
-  background: #bf8709;
+  background: #806491;
+  outline: none;
+  color: #fff;
+  border: 1px solid transparent;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: 0.1s ease-in-out;
+
+  padding: 0 40px;
+  line-height: 53px;
+  font-size: 14px;
 }
 
-/* #BF8709
+.btn:disabled {
+  background-color: transparent;
+  color: #999;
+  border-color: #999;
+}
+
+.btn:hover:not(:disabled) {
+  background: #7c5495;
+}
+
+/* Палитра */
+
+/*
+ #BF8709
 #EAC57D
 #B9BBDE
 #807490
-#523857 */
+#523857 
+*/
