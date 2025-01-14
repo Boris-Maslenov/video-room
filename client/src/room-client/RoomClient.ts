@@ -16,16 +16,24 @@ import {
 } from "./types";
 import { socket, apiSend as socketSend } from "../api/api";
 
-
 type ServerEventsType = {
   message: string;
-  data: { peer: { id: string } };
+  data: {
+    peer: {
+      id: string;
+      ioId: string;
+      isJoined: boolean;
+      name: string;
+      recvTransport: Transport;
+      roomId: string;
+    };
+    activeProducersData: ProduserDataType[];
+  };
   type: string;
 };
 
 class RoomClient {
-  // events: Partial<Record<RoomEvents, RoomEventsType[RoomEvents]>>;
-  events: { [K in keyof RoomEventsType]?: RoomEventsType[K] }
+  events: { [K in keyof RoomEventsType]?: RoomEventsType[K] };
   localMediaStream?: MediaStream;
   roomData?: RoomDataType;
   device?: Device;
@@ -33,8 +41,8 @@ class RoomClient {
   recvTransport?: Transport;
   videoProducer?: Producer;
   audioProducer?: Producer;
-  activeProducersData?: ProduserDataType[];
-  activeConsumers?: ActiveConsumerType[];
+  // activeProducersData: ProduserDataType[];
+  activeConsumers: ActiveConsumerType[];
 
   constructor() {
     this.localMediaStream;
@@ -44,19 +52,32 @@ class RoomClient {
     this.recvTransport;
     this.videoProducer;
     this.audioProducer;
-    this.activeProducersData = [];
+    // this.activeProducersData = [];
     this.activeConsumers = [];
     this.events = {};
+    // this.peers = [];
 
-    socket.on("server-event", (response: ServerEventsType) => {
-      console.log("Получено сообщение:", response.message);
+    socket.on("server-event", async (response: ServerEventsType) => {
       switch (response.type) {
         case "connect-peer": {
-          console.log(
-            "connect-peer: ",
-            response.data.peer?.videoProducer?.kind
-          );
+          // TODO: оптимизировать это решение!
+          if (!this.recvTransport) {
+            await this.createRecvTransport(
+              this.roomData!.roomId,
+              this.roomData!.peerId
+            );
 
+            this.connectRecvTransport(
+              this.roomData!.roomId,
+              this.roomData!.peerId
+            );
+          }
+
+          for (const q of response.data.activeProducersData) {
+            await this.createConsumer(q);
+          }
+
+          console.log("activeConsumers 111", this.activeConsumers);
           this.subscribe("update-peers", this.getMediaStreamsData());
           break;
         }
@@ -68,7 +89,6 @@ class RoomClient {
           );
 
           this.subscribe("update-peers", this.getMediaStreamsData());
-
           break;
         }
         default: {
@@ -105,7 +125,9 @@ class RoomClient {
 
     try {
       const routerRtpCapabilities = await this.gerRouterRtpCapabilites();
-      await this.device.load({ routerRtpCapabilities });
+      if (!this.device.loaded) {
+        await this.device.load({ routerRtpCapabilities });
+      }
     } catch (e) {
       console.error(e);
     }
@@ -174,7 +196,7 @@ class RoomClient {
       isCreator: false,
       isJoined: true,
       isSelf: true,
-      mediaTracks: this.localMediaStream.getTracks(),
+      mediaTracks: this.localMediaStream.getVideoTracks(),
       roomId: this.roomData.roomId,
     };
 
@@ -218,8 +240,8 @@ class RoomClient {
     }
 
     const tracks = {
-      videoTrack: this.localMediaStream.getVideoTracks()[0],
-      audioTrack: this.localMediaStream.getAudioTracks()[0],
+      videoTrack: this.localMediaStream.getVideoTracks()[0].clone(),
+      audioTrack: this.localMediaStream.getAudioTracks()[0].clone(),
     };
 
     return tracks;
@@ -286,6 +308,7 @@ class RoomClient {
    */
   async createConsumer(producerData: ProduserDataType) {
     if (!this.device || !this.recvTransport) return;
+
     const { roomId } = producerData;
     const { rtpCapabilities } = this.device;
 
@@ -325,8 +348,7 @@ class RoomClient {
 
         this.activeConsumers?.push(videoConsumer as ActiveConsumerType);
       }
-
-      this.subscribe("update-peers", this.getMediaStreamsData());
+      // this.subscribe("update-peers", this.getMediaStreamsData());
     } catch (error) {
       console.log("Oшибка создания Consumer-а", error);
     }
@@ -350,7 +372,7 @@ class RoomClient {
       const { audioTrack, videoTrack } = await this.getMediaTracks();
 
       this.audioProducer = await this.sendTransport.produce({
-        track: audioTrack.clone(),
+        track: audioTrack,
         appData: {
           mediaTag: "audio",
           peerId,
@@ -359,15 +381,15 @@ class RoomClient {
       });
 
       this.videoProducer = await this.sendTransport.produce({
-        track: videoTrack.clone(),
+        track: videoTrack,
         appData: {
           mediaTag: "video",
           peerId,
           roomId,
         },
       });
-    } catch (e) {
-      console.log("catch", e);
+    } catch (err) {
+      if (err instanceof Error) console.error("produce error: ", err.message);
     }
 
     return await new Promise((res) => {
@@ -403,15 +425,16 @@ class RoomClient {
     }
 
     await this.createRecvTransport(roomId, peerId);
-    this.activeProducersData = await this.getProducers(roomId, peerId);
+    const activeProducersData = await this.getProducers(roomId, peerId);
 
-    for (const producerData of this.activeProducersData) {
+    this.connectRecvTransport(roomId, peerId);
+
+    for (const producerData of activeProducersData) {
       if (producerData.peerId !== this.roomData?.peerId) {
-        this.createConsumer(producerData);
+        await this.createConsumer(producerData);
       }
     }
-
-    await this.connectRecvTransport(roomId, peerId);
+    this.subscribe("update-peers", this.getMediaStreamsData());
   }
 
   async joinToRoom(peerName = "testPeer 2", roomId = "0") {
@@ -467,11 +490,14 @@ class RoomClient {
     this.recvTransport = undefined;
     this.videoProducer = undefined;
     this.audioProducer = undefined;
-    this.activeProducersData = [];
+    // this.activeProducersData = [];
     this.activeConsumers = [];
   }
 
-  on<K extends keyof RoomEventsType>(event: K, callback: RoomEventsType[K]): void {
+  on<K extends keyof RoomEventsType>(
+    event: K,
+    callback: RoomEventsType[K]
+  ): void {
     this.events[event] = callback;
   }
 

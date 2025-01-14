@@ -33,12 +33,16 @@ const App = () => {
       setConsumersData(roomManager.getMediaStreamsData());
     });
 
-    roomManager.on(
-      "update-peers",
-      debaunce((mediaStreams: MediaStreamDataType[]) => {
-        setConsumersData(mediaStreams);
-      }, 1000)
-    );
+    // roomManager.on(
+    //   "update-peers",
+    //   debaunce((mediaStreams: MediaStreamDataType[]) => {
+    //     setConsumersData(mediaStreams);
+    //   }, 1000)
+    // );
+
+    roomManager.on("update-peers", (mediaStreams: MediaStreamDataType[]) => {
+      setConsumersData(mediaStreams);
+    });
 
     return () => {
       roomManager.leaveRoom();
