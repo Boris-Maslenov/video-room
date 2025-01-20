@@ -1,10 +1,12 @@
-import { useRef, useEffect, RefObject, FC } from "react";
-import { MediaStreamDataType } from "../../room-client/types";
+import { useRef, useEffect, RefObject, FC, memo } from "react";
+import { MediaSlotDataType } from "../../room-client/types";
+import classNames from "classnames";
 
-const ConsumerRenderer: FC<{ stream: MediaStream; isSelf: boolean }> = ({
-  stream,
-  isSelf,
-}) => {
+const ConsumerRenderer: FC<{
+  stream: MediaStream;
+  isSelf: boolean;
+  peerName: string;
+}> = memo(({ stream, isSelf, peerName }) => {
   const mediaElRef = useRef() as RefObject<HTMLVideoElement>;
 
   useEffect(() => {
@@ -17,29 +19,32 @@ const ConsumerRenderer: FC<{ stream: MediaStream; isSelf: boolean }> = ({
   return (
     <li className={"media-block"}>
       <video
-        className={isSelf ? "media-elem media-elem__self" : "media-elem"}
+        className={classNames("media-elem", {"media-elem__self": isSelf})}
         autoPlay
         ref={mediaElRef}
       ></video>
+      <div className={classNames("media-block__peer-name", { "self": isSelf })}>
+        {peerName}
+      </div>
     </li>
   );
-};
+});
 
 type RoomProps = {
   room: string;
-  consumersData: MediaStreamDataType[];
+  mediaSlots: MediaSlotDataType[];
 };
 
-const Room: FC<RoomProps> = ({ consumersData }) => {
-  console.log("Room", "consumersData:", consumersData);
-
+const Room: FC<RoomProps> = ({ mediaSlots }) => {
+  console.log("render Room", "mediaSlots", mediaSlots);
   return (
     <ul className="media-streems">
-      {consumersData.map((data, key) => (
+      {mediaSlots.map((data, key) => (
         <ConsumerRenderer
           key={key + data.peerId}
-          stream={new MediaStream(data.mediaTracks)}
+          stream={data.mediaStream}
           isSelf={data.isSelf}
+          peerName={data.peerName}
         />
       ))}
     </ul>

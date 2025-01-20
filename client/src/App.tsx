@@ -5,8 +5,8 @@ import Room from "./components/room/Room";
 import Dashboard from "./components/dashboard/Dashboard";
 import RoomClient from "./room-client/RoomClient";
 import { appendSearchParams } from "./utils/appendSearchParams";
-import { RoomDataType, MediaStreamDataType } from "./room-client/types";
-import { debaunce } from "./utils/debounce";
+import { RoomDataType, MediaSlotDataType } from "./room-client/types";
+// import { debaunce } from "./utils/debounce";
 
 export const roomManager = new RoomClient();
 
@@ -15,7 +15,7 @@ roomManager.on("update-peers", () => {});
 const App = () => {
   const [room] = useParams("room");
   const [roomData, setRoomData] = useState<RoomDataType>();
-  const [consumersData, setConsumersData] = useState<MediaStreamDataType[]>([]);
+  const [mediaSlots, setMediaSlots] = useState<MediaSlotDataType[]>([]);
 
   const connectToRoomHandle = async () => {
     await roomManager.joinToRoom();
@@ -30,18 +30,14 @@ const App = () => {
       const { roomId } = roomData;
       appendSearchParams("room", roomId);
       setRoomData(roomData);
-      setConsumersData(roomManager.getMediaStreamsData());
+      console.log(1);
+      setMediaSlots(roomManager.mediaSlots);
     });
 
-    // roomManager.on(
-    //   "update-peers",
-    //   debaunce((mediaStreams: MediaStreamDataType[]) => {
-    //     setConsumersData(mediaStreams);
-    //   }, 1000)
-    // );
-
-    roomManager.on("update-peers", (mediaStreams: MediaStreamDataType[]) => {
-      setConsumersData(mediaStreams);
+    roomManager.on("update-peers", (mediaSlots) => {
+      console.log("update-peers", "setConsumersData");
+      console.log(2);
+      setMediaSlots(mediaSlots);
     });
 
     return () => {
@@ -60,7 +56,7 @@ const App = () => {
   return (
     <div className="app-inner">
       {roomData ? (
-        <Room room={room} consumersData={consumersData} />
+        <Room room={room} mediaSlots={mediaSlots} />
       ) : (
         <Dashboard
           onCreateRoom={createNewRoomHandle}
