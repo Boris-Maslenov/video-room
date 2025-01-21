@@ -11,7 +11,7 @@ type PropsTypes = {
   onSucces: () => void;
 };
 
-const CreateNewRoomModal: FC<PropsTypes> = ({ onSucces, ...props }) => {
+const JointToRoomModal: FC<PropsTypes> = ({ onSucces, ...props }) => {
   if (!props.isOpen) return <></>;
 
   const [value, setValue] = useInputsState();
@@ -20,7 +20,7 @@ const CreateNewRoomModal: FC<PropsTypes> = ({ onSucces, ...props }) => {
     <Modal {...props}>
       <div className={"modal-header"}>
         <span style={{ fontSize: "32px", fontWeight: 400, lineHeight: 1 }}>
-          Создание новой комнаты
+          Присоединиться к комнате
         </span>
       </div>
       <div className={"modal-center"}>
@@ -37,11 +37,11 @@ const CreateNewRoomModal: FC<PropsTypes> = ({ onSucces, ...props }) => {
             onSucces();
           }}
         >
-          Создать комнату
+          Войти
         </Button>
       </div>
     </Modal>
   );
 };
 
-export default CreateNewRoomModal;
+export default JointToRoomModal;
