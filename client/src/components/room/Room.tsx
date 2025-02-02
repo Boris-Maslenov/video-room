@@ -19,11 +19,11 @@ const ConsumerRenderer: FC<{
   return (
     <li className={"media-block"}>
       <video
-        className={classNames("media-elem", {"media-elem__self": isSelf})}
+        className={classNames("media-elem", { "media-elem__self": isSelf })}
         autoPlay
         ref={mediaElRef}
       ></video>
-      <div className={classNames("media-block__peer-name", { "self": isSelf })}>
+      <div className={classNames("media-block__peer-name", { self: isSelf })}>
         {peerName}
       </div>
     </li>

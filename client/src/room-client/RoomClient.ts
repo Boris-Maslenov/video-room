@@ -42,7 +42,6 @@ class RoomClient {
   recvTransport?: Transport;
   videoProducer?: Producer;
   audioProducer?: Producer;
-  // activeProducersData: ProduserDataType[];
   activeConsumers: ActiveConsumerType[];
   mediaSlots: MediaSlotDataType[];
 
@@ -54,7 +53,6 @@ class RoomClient {
     this.recvTransport;
     this.videoProducer;
     this.audioProducer;
-    // this.activeProducersData = [];
     this.activeConsumers = [];
     this.events = {};
     this.mediaSlots = [];
@@ -132,8 +130,10 @@ class RoomClient {
       if (!this.device.loaded) {
         await this.device.load({ routerRtpCapabilities });
       }
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.subscribe("error", error);
+      }
     }
   }
 
@@ -162,9 +162,9 @@ class RoomClient {
             },
           });
           callback();
-        } catch (e) {
-          if (e instanceof Error) {
-            errback(e);
+        } catch (error) {
+          if (error instanceof Error) {
+            errback(error);
           }
         }
       }
@@ -181,9 +181,9 @@ class RoomClient {
             appData,
           });
           callback(data);
-        } catch (e) {
-          if (e instanceof Error) {
-            errback(e);
+        } catch (error) {
+          if (error instanceof Error) {
+            errback(error);
           }
         }
       }
@@ -381,9 +381,10 @@ class RoomClient {
 
         this.activeConsumers?.push(videoConsumer as ActiveConsumerType);
       }
-      // this.subscribe("update-peers", this.getMediaStreamsData());
     } catch (error) {
-      console.log("Oшибка создания Consumer-а", error);
+      if (error instanceof Error) {
+        this.subscribe("error", error);
+      }
     }
   }
 
@@ -421,8 +422,10 @@ class RoomClient {
           roomId,
         },
       });
-    } catch (err) {
-      if (err instanceof Error) console.error("produce error: ", err.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.subscribe("error", error);
+      }
     }
 
     return await new Promise((res) => {
@@ -472,7 +475,14 @@ class RoomClient {
     this.subscribe("update-peers", this.mediaSlots.concat());
   }
 
-  async joinToRoom(peerName = "testPeer 2", roomId = "0") {
+  /**
+   * Точка входа в комнату
+   */
+  async joinToRoom(peerName: string, roomId: string) {
+    if (!peerName || !roomId)
+      throw new Error(
+        "Для входа в комнату нужно указать id комнаты и имя абонента!"
+      );
     try {
       const roomData = await socketSend<RoomDataType>("createPeer", {
         peerName,
@@ -480,16 +490,23 @@ class RoomClient {
       });
 
       this.roomData = roomData;
+
       if (!this.roomData) return;
+
       await this.produce(this.roomData.roomId, this.roomData.peerId);
+
       await socketSend<boolean>("joined", {
         peerId: this.roomData.peerId,
         roomId: this.roomData.roomId,
       });
+
       await this.consume(this.roomData.roomId, this.roomData.peerId);
+
       return this.roomData;
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.subscribe("error", error);
+      }
     }
   }
 
@@ -501,14 +518,22 @@ class RoomClient {
         peerName,
       });
       this.roomData = response;
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.subscribe("error", error);
+      }
     }
 
     return this.roomData;
   }
 
-  async createAndJoinRoom(peerName = "testPeer 1") {
+  /**
+   * Точка входа в комнату
+   */
+  async createAndJoinRoom(peerName: string) {
+    if (!peerName)
+      throw new Error("Для входа в комнату нужно задать имя участника!");
+
     this.subscribe("room-connecting");
     await this.createNewRoom(peerName);
 
@@ -525,7 +550,6 @@ class RoomClient {
     this.recvTransport = undefined;
     this.videoProducer = undefined;
     this.audioProducer = undefined;
-    // this.activeProducersData = [];
     this.activeConsumers = [];
     this.mediaSlots = [];
   }

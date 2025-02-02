@@ -1,15 +1,16 @@
-import { FC, useState } from "react";
+import { FC } from "react";
 import { useParams } from "../../hooks/useParams";
 import Button from "../reused/button/Button";
 import CreateNewRoomModal from "../modals/create-new-room-modal/CreateNewRoomModal";
 import JointToRoomModal from "../modals/create-new-room-modal/JointToRoomModal";
 import { useModal } from "../../hooks/useModals";
-interface DashboardProps {
-  onCreateRoom: () => void;
-  onConnectToRoom: () => void;
-}
 
-const Dashboard: FC<DashboardProps> = ({ onCreateRoom, onConnectToRoom }) => {
+type DashboardProps = {
+  onCreateRoom: (peerName: string) => void;
+  onConnectRoom: (peerName: string) => void;
+};
+
+const Dashboard: FC<DashboardProps> = ({ onCreateRoom, onConnectRoom }) => {
   const [room] = useParams("room");
   const [isOpenCreateNewRoomModal, toggleCreateNewRoomModal] = useModal();
   const [isOpenJointToRoomModal, toggleJointToRoomModal] = useModal();
@@ -17,11 +18,11 @@ const Dashboard: FC<DashboardProps> = ({ onCreateRoom, onConnectToRoom }) => {
   return (
     <div className="center-content">
       <Button onClick={toggleCreateNewRoomModal} disabled={!!room}>
-        создать комнату
+        Создать комнату
       </Button>
 
       <Button onClick={toggleJointToRoomModal} disabled={!room}>
-        подключиться
+        Подключиться
       </Button>
 
       <CreateNewRoomModal
@@ -32,7 +33,7 @@ const Dashboard: FC<DashboardProps> = ({ onCreateRoom, onConnectToRoom }) => {
       <JointToRoomModal
         isOpen={isOpenJointToRoomModal}
         onClose={toggleJointToRoomModal}
-        onSucces={onConnectToRoom}
+        onSucces={onConnectRoom}
       />
     </div>
   );

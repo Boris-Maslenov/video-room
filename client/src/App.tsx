@@ -1,43 +1,42 @@
 import "./styles.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useParams } from "./hooks/useParams";
 import Room from "./components/room/Room";
 import Dashboard from "./components/dashboard/Dashboard";
 import RoomClient from "./room-client/RoomClient";
 import { appendSearchParams } from "./utils/appendSearchParams";
 import { RoomDataType, MediaSlotDataType } from "./room-client/types";
-// import { debaunce } from "./utils/debounce";
-
+import { ErrorContext } from "./context/ErrorContext";
 export const roomManager = new RoomClient();
-
-roomManager.on("update-peers", () => {});
 
 const App = () => {
   const [room] = useParams("room");
   const [roomData, setRoomData] = useState<RoomDataType>();
   const [mediaSlots, setMediaSlots] = useState<MediaSlotDataType[]>([]);
+  const { addError } = useContext(ErrorContext);
 
-  const connectToRoomHandle = async () => {
-    await roomManager.joinToRoom();
+  const connectRoomHandle = async (peerName: string) => {
+    await roomManager.joinToRoom(peerName, room);
   };
-  const createNewRoomHandle = async () => {
-    await roomManager.createAndJoinRoom();
+
+  const createNewRoomHandle = async (peerName: string) => {
+    await roomManager.createAndJoinRoom(peerName);
   };
 
   useEffect(() => {
     roomManager.on("room-connected", (roomData) => {
-      console.log("room-connected");
-      const { roomId } = roomData;
-      appendSearchParams("room", roomId);
+      appendSearchParams("room", roomData.roomId);
       setRoomData(roomData);
-      console.log(1);
+      // TODO: mediaSlots брать из callback, а не из класса
       setMediaSlots(roomManager.mediaSlots);
     });
 
     roomManager.on("update-peers", (mediaSlots) => {
-      console.log("update-peers", "setConsumersData");
-      console.log(2);
       setMediaSlots(mediaSlots);
+    });
+
+    roomManager.on("error", (error) => {
+      addError(error);
     });
 
     return () => {
@@ -60,7 +59,7 @@ const App = () => {
       ) : (
         <Dashboard
           onCreateRoom={createNewRoomHandle}
-          onConnectToRoom={connectToRoomHandle}
+          onConnectRoom={connectRoomHandle}
         />
       )}
     </div>

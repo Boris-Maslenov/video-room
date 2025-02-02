@@ -6,7 +6,6 @@ export const throttle = <T extends (...args: any[]) => unknown>(
   let savedArgs: Parameters<T> | undefined;
 
   const wrapper = (...args: Parameters<T>) => {
-    console.log("isThrottled", isThrottled);
     if (isThrottled) {
       savedArgs = args;
       return;

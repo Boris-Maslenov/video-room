@@ -28,7 +28,7 @@ export type MediaSlotDataType = {
   ioId: string;
   isCreator: boolean;
   isJoined: boolean;
- //  mediaTracks: MediaStreamTrack[];
+  //  mediaTracks: MediaStreamTrack[];
   mediaStream: MediaStream;
   roomId: string;
   isSelf: boolean;
@@ -46,6 +46,7 @@ export type RoomEventsType = {
   "room-connecting": () => void;
   "update-peers": (mediaSlots: MediaSlotDataType[]) => void;
   "room-leave": () => void;
+  error: (error: Error) => void;
 };
 
 export type RoomEvents = keyof RoomEventsType;
