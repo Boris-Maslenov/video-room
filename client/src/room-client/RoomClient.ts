@@ -57,6 +57,14 @@ class RoomClient {
     this.events = {};
     this.mediaSlots = [];
 
+    socket.on("connect_error", (error) => {
+      this.subscribe("error", error);
+    });
+
+    socket.on("connect_timeout", (error) => {
+      this.subscribe("error", error);
+    });
+
     socket.on("server-event", async (response: ServerEventsType) => {
       switch (response.type) {
         case "connect-peer": {

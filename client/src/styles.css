@@ -144,3 +144,46 @@ ul > li {
 #807490
 #523857 
 */
+
+:root {
+  --animate-duration: 0.5s;
+  --animate-delay: 0.5s;
+  --animate-repeat: 1;
+}
+
+.animate__animated {
+  animation-duration: var(--animate-duration);
+  animation-fill-mode: both;
+  animation-iteration-count: var(--animate-repeat);
+}
+
+@keyframes zoomIn {
+  0% {
+    opacity: 0;
+    transform: scale3d(0.3, 0.3, 0.3);
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate__zoomIn {
+  animation-name: zoomIn;
+}
+
+@keyframes zoomOut {
+  from {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+    transform: scale3d(0.3, 0.3, 0.3);
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate__zoomOut {
+  animation-name: zoomOut;
+}

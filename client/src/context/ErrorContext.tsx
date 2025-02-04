@@ -1,23 +1,27 @@
 import { createContext, ReactNode, useState, FC } from "react";
 import ErrorModal from "../components/modals/create-new-room-modal/ErrorModal";
 
-const initialValue = {
-  errors: [] as Error[],
-  addError: (error: Error) => {},
-  removeError: () => {},
-};
-
 type Props = {
   children?: ReactNode;
 };
 
-export const ErrorContext = createContext(initialValue);
+export const ErrorContext = createContext({
+  errors: [] as Error[],
+  addError: (error: Error) => {},
+  removeError: () => {},
+});
 
 const ErrorProvider: FC<Props> = ({ children }) => {
   const [errors, setErrors] = useState<Error[]>([]);
 
   const addError = (error: Error) => {
-    setErrors((prevErrors) => [...prevErrors, error]);
+    setErrors((prevErrors) => {
+      if (prevErrors.some(({ message }) => message === error.message)) {
+        return prevErrors;
+      }
+
+      return [...prevErrors, error];
+    });
   };
 
   const removeError = () => {
