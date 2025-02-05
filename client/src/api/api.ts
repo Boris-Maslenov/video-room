@@ -5,7 +5,7 @@ import {
   isErrorSocketType,
 } from "./api.types";
 
-const WS_URL = "ws://localhost:3001";
+const WS_URL = "127.0.0.1:3001";
 export const socket = io(WS_URL);
 
 class ApiError extends Error {

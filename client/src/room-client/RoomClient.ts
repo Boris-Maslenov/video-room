@@ -9,7 +9,6 @@ import {
 import {
   ProduserDataType,
   RoomDataType,
-  MediaStreamDataType,
   RoomEvents,
   RoomEventsType,
   ActiveConsumerType,
@@ -82,6 +81,7 @@ class RoomClient {
           }
 
           for (const p of response.data.activeProducersData) {
+            console.log("p", p);
             await this.createConsumer(p);
           }
 
@@ -91,7 +91,6 @@ class RoomClient {
           break;
         }
         case "disconnect-peer": {
-          console.log("disconnect-peer:", response);
           this.activeConsumers = this.activeConsumers?.filter(
             (consumer) =>
               consumer.appData.producerData.peerId !== response.data.peer.id
@@ -111,10 +110,9 @@ class RoomClient {
   /**
    * Запросить список активных продюсеров (включая свой собственный) в пределах 1 комнаты
    */
-  private async getProducers(roomId: string, peerId: string) {
+  private async getProducers(roomId: string) {
     return await socketSend<ProduserDataType[]>("getProducers", {
       roomId,
-      peerId,
     });
   }
 
@@ -279,7 +277,6 @@ class RoomClient {
         audio: true,
       });
     }
-
     const tracks = {
       videoTrack: this.localMediaStream.getVideoTracks()[0].clone(),
       audioTrack: this.localMediaStream.getAudioTracks()[0].clone(),
@@ -350,6 +347,9 @@ class RoomClient {
   async createConsumer(producerData: ProduserDataType) {
     if (!this.device || !this.recvTransport) return;
 
+    console.log("producerData", producerData);
+    if (!producerData.id) throw new Error("Отсутствует producerData.id");
+
     const { roomId } = producerData;
     const { rtpCapabilities } = this.device;
 
@@ -399,7 +399,7 @@ class RoomClient {
   /**
    * Отправка Медиа потока в комнату
    */
-  async produce(roomId: string, peerId: string): Promise<boolean> {
+  async produce(roomId: string, peerId: string): Promise<boolean | undefined> {
     if (!this.device) {
       await this.loadDevice();
     }
@@ -407,11 +407,23 @@ class RoomClient {
     await this.createProducerTransport(roomId, peerId);
 
     if (!this.sendTransport) {
-      return false;
+      return Promise.reject(false);
     }
-
     try {
       const { audioTrack, videoTrack } = await this.getMediaTracks();
+
+      const promiseResult = new Promise<boolean>((res, rej) => {
+        this.sendTransport!.on("connectionstatechange", (state) => {
+          if (state === "connected") {
+            this.addSelfSlot();
+            this.subscribe("room-connected", this.roomData!);
+            res(true);
+          }
+          if (state === "disconnected" || state === "failed") {
+            rej(false);
+          }
+        });
+      });
 
       this.audioProducer = await this.sendTransport.produce({
         track: audioTrack,
@@ -430,21 +442,14 @@ class RoomClient {
           roomId,
         },
       });
+
+      return promiseResult;
     } catch (error) {
+      console.log(11111111111111, error);
       if (error instanceof Error) {
         this.subscribe("error", error);
       }
     }
-
-    return await new Promise((res) => {
-      this.sendTransport!.on("connectionstatechange", (state) => {
-        if (state === "connected") {
-          this.addSelfSlot();
-          this.subscribe("room-connected", this.roomData!);
-          res(true);
-        }
-      });
-    });
   }
 
   /**
@@ -470,12 +475,14 @@ class RoomClient {
     }
 
     await this.createRecvTransport(roomId, peerId);
-    const activeProducersData = await this.getProducers(roomId, peerId);
+    const activeProducersData = await this.getProducers(roomId);
+    console.log("activeProducersData", activeProducersData);
 
     this.connectRecvTransport(roomId, peerId);
 
     for (const producerData of activeProducersData) {
       if (producerData.peerId !== this.roomData?.peerId) {
+        console.log("producerData 1", producerData);
         await this.createConsumer(producerData);
       }
     }
@@ -527,6 +534,7 @@ class RoomClient {
       });
       this.roomData = response;
     } catch (error) {
+      console.log("createNewRoom error", error);
       if (error instanceof Error) {
         this.subscribe("error", error);
       }
@@ -541,12 +549,16 @@ class RoomClient {
   async createAndJoinRoom(peerName: string) {
     if (!peerName)
       throw new Error("Для входа в комнату нужно задать имя участника!");
-
+    console.log("createAndJoinRoom START");
     this.subscribe("room-connecting");
-    await this.createNewRoom(peerName);
+    console.log("createNewRoom start..");
+    const roomData = await this.createNewRoom(peerName);
+    console.log("createNewRoom end");
 
-    if (this.roomData?.roomId && this.roomData?.peerId) {
-      await this.produce(this.roomData?.roomId, this.roomData?.peerId);
+    if (roomData?.peerId && roomData.roomId) {
+      console.log("start produce...");
+      await this.produce(roomData.roomId, roomData.peerId);
+      console.log("createAndJoinRoom END");
     }
   }
 

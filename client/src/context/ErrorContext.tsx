@@ -7,7 +7,7 @@ type Props = {
 
 export const ErrorContext = createContext({
   errors: [] as Error[],
-  addError: (error: Error) => {},
+  addError: (_: Error) => {},
   removeError: () => {},
 });
 
