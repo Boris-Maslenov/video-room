@@ -53,7 +53,7 @@ const App = () => {
   }, []);
 
   return (
-    <div className="app-inner">
+    <div className="app__inner">
       {roomData ? (
         <Room room={room} mediaSlots={mediaSlots} />
       ) : (

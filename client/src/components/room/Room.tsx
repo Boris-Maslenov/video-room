@@ -1,34 +1,16 @@
-import { useRef, useEffect, RefObject, FC, memo } from "react";
+import { FC } from "react";
 import { MediaSlotDataType } from "../../room-client/types";
-import classNames from "classnames";
+import Button from "../reused/button/Button";
+import SimpleBar from "simplebar-react";
 
-const ConsumerRenderer: FC<{
-  stream: MediaStream;
-  isSelf: boolean;
-  peerName: string;
-}> = memo(({ stream, isSelf, peerName }) => {
-  const mediaElRef = useRef() as RefObject<HTMLVideoElement>;
-
-  useEffect(() => {
-    if (mediaElRef.current) {
-      mediaElRef.current.srcObject = stream;
-      mediaElRef.current.playsInline = true;
-    }
-  }, [mediaElRef.current]);
-
-  return (
-    <li className={"media-block"}>
-      <video
-        className={classNames("media-elem", { "media-elem__self": isSelf })}
-        autoPlay
-        ref={mediaElRef}
-      ></video>
-      <div className={classNames("media-block__peer-name", { self: isSelf })}>
-        {peerName}
-      </div>
-    </li>
-  );
-});
+import {
+  MicOnIcon,
+  CameraOnIcon,
+  PhoneIcon,
+  ShareDisplayOff,
+  ShareLinkIcon,
+} from "../icons";
+import ConsumerRenderer from "./ConsumerRenderer";
 
 type RoomProps = {
   room: string;
@@ -38,16 +20,69 @@ type RoomProps = {
 const Room: FC<RoomProps> = ({ mediaSlots }) => {
   console.log("render Room", "mediaSlots", mediaSlots);
   return (
-    <ul className="media-streems">
-      {mediaSlots.map((data, key) => (
-        <ConsumerRenderer
-          key={key + data.peerId}
-          stream={data.mediaStream}
-          isSelf={data.isSelf}
-          peerName={data.peerName}
-        />
-      ))}
-    </ul>
+    <div className="room">
+      <div className="room__media">
+        <SimpleBar
+          style={{
+            maxHeight: "calc(100vh - var(--actin-height) - var(--row-gap))",
+            width: "100%",
+            maxWidth: "100%",
+          }}
+        >
+          <div className="media-streems">
+            {mediaSlots.map((data, key) => (
+              <ConsumerRenderer
+                key={key + data.peerId}
+                stream={data.mediaStream}
+                isSelf={data.isSelf}
+                peerName={data.peerName}
+              />
+            ))}
+          </div>
+        </SimpleBar>
+      </div>
+      <div className="room__action">
+        <div className="action-panel">
+          <Button
+            icon={true}
+            onClick={() => {}}
+            title="Скопировать ссылку"
+            disabled={true}
+          >
+            <ShareLinkIcon />
+          </Button>
+          <div className="action-panel__center-group">
+            <Button icon={true} onClick={() => {}} title="Отключить микрофон">
+              <MicOnIcon />
+            </Button>
+
+            <Button icon={true} onClick={() => {}} title="Отключить камеру">
+              <CameraOnIcon />
+            </Button>
+
+            <Button
+              icon={true}
+              onClick={() => {}}
+              title="Демонстрация"
+              disabled={true}
+            >
+              <ShareDisplayOff />
+            </Button>
+          </div>
+
+          <Button
+            icon={true}
+            title="Завершить сеанс"
+            onClick={() => {}}
+            style={{
+              marginLeft: "auto",
+            }}
+          >
+            <PhoneIcon />
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 

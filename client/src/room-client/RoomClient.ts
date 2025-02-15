@@ -32,6 +32,11 @@ type ServerEventsType = {
   type: string;
 };
 
+/**
+ * Класс реализует полную логику подключения к комнате.
+ * Взаимодействует с приложением через подписки на события.
+ */
+
 class RoomClient {
   events: { [K in keyof RoomEventsType]?: RoomEventsType[K] };
   localMediaStream?: MediaStream;
@@ -57,10 +62,14 @@ class RoomClient {
     this.mediaSlots = [];
 
     socket.on("connect_error", (error) => {
+      this.leaveRoom();
+      // TODO: добавить событие disconnect
       this.subscribe("error", error);
     });
 
     socket.on("connect_timeout", (error) => {
+      this.leaveRoom();
+      // TODO: добавить событие disconnect
       this.subscribe("error", error);
     });
 
@@ -69,32 +78,20 @@ class RoomClient {
         case "connect-peer": {
           // TODO: оптимизировать это решение!
           if (!this.recvTransport) {
-            await this.createRecvTransport(
-              this.roomData!.roomId,
-              this.roomData!.peerId
-            );
-
-            this.connectRecvTransport(
-              this.roomData!.roomId,
-              this.roomData!.peerId
-            );
+            await this.createRecvTransport();
+            this.connectRecvTransport();
           }
 
-          for (const p of response.data.activeProducersData) {
-            console.log("p", p);
-            await this.createConsumer(p);
+          for (const producerData of response.data.activeProducersData) {
+            await this.createConsumer(producerData);
           }
 
           this.addSlot(response.data.peer.id);
-          this.subscribe("update-peers", this.mediaSlots.concat());
+          this.subscribe("update-peers", this.mediaSlots);
 
           break;
         }
         case "disconnect-peer": {
-          this.activeConsumers = this.activeConsumers?.filter(
-            (consumer) =>
-              consumer.appData.producerData.peerId !== response.data.peer.id
-          );
           this.deleteSlot(response.data.peer.id);
           this.subscribe("update-peers", this.mediaSlots);
 
@@ -239,6 +236,10 @@ class RoomClient {
   }
 
   private deleteSlot(id: string) {
+    this.activeConsumers = this.activeConsumers?.filter(
+      (consumer) => consumer.appData.producerData.peerId !== id
+    );
+
     this.mediaSlots = this.mediaSlots.filter((slot) => slot.peerId !== id);
   }
 
@@ -247,13 +248,16 @@ class RoomClient {
       (consumer) => consumer.appData.producerData.peerId === id
     );
 
-    if (consumers.length) {
-      const slot = this.createSlotFromConsumers(consumers);
-      slot && this.mediaSlots.push(slot);
+    if (consumers.length === 0) return;
+
+    let slot = this.createSlotFromConsumers(consumers);
+
+    if (slot) {
+      this.mediaSlots = this.mediaSlots.concat(slot);
     }
   }
 
-  private fillSlots(data: ActiveConsumerType[]) {
+  private createSlots(data: ActiveConsumerType[]) {
     const ids = data.reduce<string[]>((acc, currnt) => {
       if (acc.includes(currnt.appData.producerData.peerId)) {
         return acc;
@@ -288,12 +292,15 @@ class RoomClient {
   /**
    * Создает consume транспорт
    */
-  async createRecvTransport(roomId: string, peerId: string) {
-    if (!this.device) return;
+  async createRecvTransport() {
+    if (!this.device || !(this.roomData?.roomId && this.roomData?.peerId))
+      return;
 
     const transportOptions = await socketSend<TransportOptions>(
       "createConsumerTransport",
-      { appData: { roomId, peerId } }
+      {
+        appData: { roomId: this.roomData.roomId, peerId: this.roomData.peerId },
+      }
     );
 
     this.recvTransport = this.device.createRecvTransport(transportOptions);
@@ -302,11 +309,9 @@ class RoomClient {
   /**
    * Подключение
    */
-  async connectRecvTransport(
-    roomId: string,
-    peerId: string
-  ): Promise<string | undefined> {
-    if (!this.recvTransport) return;
+  async connectRecvTransport(): Promise<string | undefined> {
+    if (!this.recvTransport || !(this.roomData?.roomId && this.roomData.peerId))
+      return;
     // Событие автоматически генерируется mediasoup-client, когда требуется передать DTLS параметры на сервер.
     this.recvTransport.on(
       "connect",
@@ -315,7 +320,10 @@ class RoomClient {
           await socketSend("connectConsumerTransport", {
             transportId: this.recvTransport!.id,
             dtlsParameters,
-            appData: { roomId, peerId },
+            appData: {
+              roomId: this.roomData!.roomId,
+              peerId: this.roomData!.peerId,
+            },
           });
           // сервер подтвердил соединение
           callback();
@@ -346,14 +354,18 @@ class RoomClient {
    */
   async createConsumer(producerData: ProduserDataType) {
     if (!this.device || !this.recvTransport) return;
-
-    console.log("producerData", producerData);
-    if (!producerData.id) throw new Error("Отсутствует producerData.id");
-
-    const { roomId } = producerData;
     const { rtpCapabilities } = this.device;
 
     try {
+      if (!producerData.id)
+        throw new Error("Consumer не может быть создан без Producer id.");
+
+      const { roomId } = producerData;
+
+      if (roomId !== this.roomData?.roomId) {
+        throw new Error("При создании Consumer  несовпадение id комнат.");
+      }
+
       const { id, rtpParameters, kind, producerId, appData } =
         await socketSend<ConsumerOptions>("createConsumer", {
           rtpCapabilities,
@@ -367,7 +379,7 @@ class RoomClient {
         });
 
       if (kind === "audio") {
-        const audioConsumer = await this.recvTransport!.consume({
+        const audioConsumer = await this.recvTransport.consume({
           id,
           rtpParameters,
           producerId,
@@ -375,11 +387,11 @@ class RoomClient {
           appData,
         });
 
-        this.activeConsumers?.push(audioConsumer as ActiveConsumerType);
+        this.activeConsumers.push(audioConsumer as ActiveConsumerType);
       }
 
       if (kind === "video") {
-        const videoConsumer = await this.recvTransport!.consume({
+        const videoConsumer = await this.recvTransport.consume({
           id,
           rtpParameters,
           producerId,
@@ -387,7 +399,7 @@ class RoomClient {
           appData,
         });
 
-        this.activeConsumers?.push(videoConsumer as ActiveConsumerType);
+        this.activeConsumers.push(videoConsumer as ActiveConsumerType);
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -445,7 +457,6 @@ class RoomClient {
 
       return promiseResult;
     } catch (error) {
-      console.log(11111111111111, error);
       if (error instanceof Error) {
         this.subscribe("error", error);
       }
@@ -455,16 +466,16 @@ class RoomClient {
   /**
    * Подписка на события продюсера
    */
-  async subscribeEventsProducer(producer: Producer) {
-    if (!producer) return;
-    producer.on("trackended", () => {
-      console.log("Track ended, stopping producer.");
-    });
+  // async subscribeEventsProducer(producer: Producer) {
+  //   if (!producer) return;
+  //   producer.on("trackended", () => {
+  //     console.log("Track ended, stopping producer.");
+  //   });
 
-    producer.on("transportclose", () => {
-      console.log("Transport was closed, producer will be destroyed.");
-    });
-  }
+  //   producer.on("transportclose", () => {
+  //     console.log("Transport was closed, producer will be destroyed.");
+  //   });
+  // }
 
   /**
    * Прием медиа потока (подписка на все продюсеры, кроме своего)
@@ -474,11 +485,11 @@ class RoomClient {
       await this.loadDevice();
     }
 
-    await this.createRecvTransport(roomId, peerId);
+    await this.createRecvTransport();
     const activeProducersData = await this.getProducers(roomId);
     console.log("activeProducersData", activeProducersData);
 
-    this.connectRecvTransport(roomId, peerId);
+    this.connectRecvTransport();
 
     for (const producerData of activeProducersData) {
       if (producerData.peerId !== this.roomData?.peerId) {
@@ -486,7 +497,7 @@ class RoomClient {
         await this.createConsumer(producerData);
       }
     }
-    this.fillSlots(this.activeConsumers);
+    this.createSlots(this.activeConsumers);
     this.subscribe("update-peers", this.mediaSlots.concat());
   }
 
@@ -508,7 +519,12 @@ class RoomClient {
 
       if (!this.roomData) return;
 
-      await this.produce(this.roomData.roomId, this.roomData.peerId);
+      const produceRes = await this.produce(
+        this.roomData.roomId,
+        this.roomData.peerId
+      );
+
+      if (!produceRes) return;
 
       await socketSend<boolean>("joined", {
         peerId: this.roomData.peerId,

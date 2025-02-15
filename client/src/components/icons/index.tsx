@@ -10,3 +10,4 @@ export { ShareDisplayOff } from "./ShareDisplayOff";
 export { ShareLinkIcon } from "./ShareLinkIcon";
 export { WiFiIcon } from "./WiFiIcon";
 export { ScaleIcon } from "./ScaleIcon";
+export { DotsFadeAnimateIcon } from "./DotsFadeAnimateIcon";

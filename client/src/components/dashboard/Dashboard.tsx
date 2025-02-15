@@ -16,25 +16,27 @@ const Dashboard: FC<DashboardProps> = ({ onCreateRoom, onConnectRoom }) => {
   const [isOpenJointToRoomModal, toggleJointToRoomModal] = useModal();
 
   return (
-    <div className="center-content">
-      <Button onClick={toggleCreateNewRoomModal} disabled={!!room}>
-        Создать комнату
-      </Button>
+    <div className="dashboard center-content">
+      <div className="dashboard__content">
+        <Button onClick={toggleCreateNewRoomModal} disabled={!!room}>
+          Создать комнату
+        </Button>
 
-      <Button onClick={toggleJointToRoomModal} disabled={!room}>
-        Подключиться
-      </Button>
+        <Button onClick={toggleJointToRoomModal} disabled={!room}>
+          Подключиться
+        </Button>
 
-      <CreateNewRoomModal
-        isOpen={isOpenCreateNewRoomModal}
-        onClose={toggleCreateNewRoomModal}
-        onSucces={onCreateRoom}
-      />
-      <JointToRoomModal
-        isOpen={isOpenJointToRoomModal}
-        onClose={toggleJointToRoomModal}
-        onSucces={onConnectRoom}
-      />
+        <CreateNewRoomModal
+          isOpen={isOpenCreateNewRoomModal}
+          onClose={toggleCreateNewRoomModal}
+          onSucces={onCreateRoom}
+        />
+        <JointToRoomModal
+          isOpen={isOpenJointToRoomModal}
+          onClose={toggleJointToRoomModal}
+          onSucces={onConnectRoom}
+        />
+      </div>
     </div>
   );
 };

@@ -3,7 +3,7 @@
   position: absolute;
   right: -20px;
   top: -20px;
-  background: #b9bbde;
+  background: #7c5495;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -13,6 +13,10 @@
   border: 0;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 1px 0 1px rgba(0, 0, 0, 0.05),
     0 4px 6px 0 rgba(0, 0, 0, 0.05);
+}
+
+.modal-close-button svg {
+  color: #fff;
 }
 
 .modal-header {
