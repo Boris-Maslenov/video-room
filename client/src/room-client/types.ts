@@ -42,7 +42,11 @@ export type RoomDataType = {
 };
 
 export type RoomEventsType = {
-  "room-connected": (roomData: RoomDataType) => void;
+  "room-connected": (
+    roomData: RoomDataType,
+    mediaSlots: MediaSlotDataType[]
+  ) => void;
+  "room-disconnected": () => void;
   "room-connecting": () => void;
   "update-peers": (mediaSlots: MediaSlotDataType[]) => void;
   "room-leave": () => void;

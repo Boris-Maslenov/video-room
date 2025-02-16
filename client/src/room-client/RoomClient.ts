@@ -203,7 +203,7 @@ class RoomClient {
       isCreator: false,
       isJoined: true,
       isSelf: true,
-      mediaStream: new MediaStream(this.localMediaStream.getVideoTracks()),
+      mediaStream: new MediaStream(this.localMediaStream.getTracks()),
       roomId: this.roomData.roomId,
     };
 
@@ -424,15 +424,18 @@ class RoomClient {
     try {
       const { audioTrack, videoTrack } = await this.getMediaTracks();
 
+      console.log(audioTrack, videoTrack);
+
       const promiseResult = new Promise<boolean>((res, rej) => {
         this.sendTransport!.on("connectionstatechange", (state) => {
           if (state === "connected") {
             this.addSelfSlot();
-            this.subscribe("room-connected", this.roomData!);
+            this.subscribe("room-connected", this.roomData!, this.mediaSlots!);
             res(true);
           }
+
           if (state === "disconnected" || state === "failed") {
-            rej(false);
+            rej(new Error(state));
           }
         });
       });
@@ -457,9 +460,33 @@ class RoomClient {
 
       return promiseResult;
     } catch (error) {
+      console.log("catch", error);
       if (error instanceof Error) {
         this.subscribe("error", error);
       }
+    }
+  }
+
+  videoStartStop() {
+    if (!this.videoProducer) return;
+
+    if (this.videoProducer.paused) {
+      this.videoProducer.resume();
+    } else {
+      this.videoProducer.pause();
+      if (this.videoProducer?.track?.enabled) {
+        this.videoProducer.track.enabled = false;
+      }
+    }
+  }
+
+  audioStartStop() {
+    if (!this.audioProducer) return;
+
+    if (this.audioProducer.paused) {
+      this.audioProducer.resume();
+    } else {
+      this.audioProducer.pause();
     }
   }
 
@@ -480,7 +507,7 @@ class RoomClient {
   /**
    * Прием медиа потока (подписка на все продюсеры, кроме своего)
    */
-  async consume(roomId: string, peerId: string) {
+  async consume(roomId: string) {
     if (!this.device) {
       await this.loadDevice();
     }
@@ -505,6 +532,7 @@ class RoomClient {
    * Точка входа в комнату
    */
   async joinToRoom(peerName: string, roomId: string) {
+    console.log("joinToRoom");
     if (!peerName || !roomId)
       throw new Error(
         "Для входа в комнату нужно указать id комнаты и имя абонента!"
@@ -518,20 +546,23 @@ class RoomClient {
       this.roomData = roomData;
 
       if (!this.roomData) return;
-
+      console.log("1");
       const produceRes = await this.produce(
         this.roomData.roomId,
         this.roomData.peerId
       );
-
+      console.log("2");
       if (!produceRes) return;
+      console.log("3");
 
       await socketSend<boolean>("joined", {
         peerId: this.roomData.peerId,
         roomId: this.roomData.roomId,
       });
+      console.log("4");
 
-      await this.consume(this.roomData.roomId, this.roomData.peerId);
+      await this.consume(this.roomData.roomId);
+      console.log("5");
 
       return this.roomData;
     } catch (error) {
@@ -582,12 +613,29 @@ class RoomClient {
     this.localMediaStream = undefined;
     this.roomData = undefined;
     this.device = undefined;
+    this.sendTransport?.close();
     this.sendTransport = undefined;
+    this.recvTransport?.close();
     this.recvTransport = undefined;
     this.videoProducer = undefined;
     this.audioProducer = undefined;
     this.activeConsumers = [];
     this.mediaSlots = [];
+  }
+
+  async deletePeer() {
+    try {
+      await socketSend<boolean>("deletePeer", {
+        roomId: this.roomData?.roomId,
+        ioId: this.roomData?.ioId,
+      });
+      this.localMediaStream?.getTracks().forEach((track) => track.stop());
+      this.leaveRoom();
+      console.log(this.roomData);
+      this.subscribe("room-disconnected");
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   on<K extends keyof RoomEventsType>(

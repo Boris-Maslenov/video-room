@@ -24,11 +24,14 @@ const App = () => {
   };
 
   useEffect(() => {
-    roomManager.on("room-connected", (roomData) => {
+    roomManager.on("room-connected", (roomData, mediaSlots) => {
       appendSearchParams("room", roomData.roomId);
       setRoomData(roomData);
-      // TODO: mediaSlots брать из callback, а не из класса
-      setMediaSlots(roomManager.mediaSlots);
+      setMediaSlots(mediaSlots);
+    });
+
+    roomManager.on("room-disconnected", () => {
+      setRoomData(undefined);
     });
 
     roomManager.on("update-peers", (mediaSlots) => {

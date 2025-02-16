@@ -4,8 +4,8 @@ import Button from "../reused/button/Button";
 import {
   ScaleIcon,
   MicOnIcon,
-  CameraOffIcon,
   DotsFadeAnimateIcon,
+  MicOffIcon,
 } from "../icons";
 
 const ConsumerRenderer: FC<{
@@ -18,13 +18,17 @@ const ConsumerRenderer: FC<{
 
   useEffect(() => {
     if (mediaElRef.current) {
-      mediaElRef.current.srcObject = stream;
+      mediaElRef.current.srcObject = !isSelf
+        ? stream
+        : new MediaStream(stream.getVideoTracks());
       mediaElRef.current.playsInline = true;
       mediaElRef.current.onloadedmetadata = () => {
         setReadiVideo(true);
       };
     }
   }, [mediaElRef.current]);
+
+  const isMicActive = stream.getAudioTracks()[0];
 
   return (
     <div className="media-module">
@@ -40,35 +44,23 @@ const ConsumerRenderer: FC<{
           </div>
         )}
         <video
-          style={{
-            visibility: readiVideo ? "visible" : "hidden",
-          }}
-          className={classNames("media-elem", { "media-elem__self": isSelf })}
+          className={classNames("media-elem", {
+            "media-elem__self": isSelf,
+          })}
           autoPlay
           ref={mediaElRef}
         ></video>
-
-        <div
-          className={classNames("media-module__spinner", {
-            "media-module__spinner_active": !readiVideo,
-          })}
-          style={{ height: "100%", display: readiVideo ? "none" : "block" }}
-        >
-          <DotsFadeAnimateIcon />
-        </div>
+        {!readiVideo && (
+          <div className="media-module__spinner">
+            <DotsFadeAnimateIcon />
+          </div>
+        )}
       </div>
       <div className="media-module__content">
         {peerName}
-        {!isSelf && (
-          <div className="media-module__actions">
-            <Button onClick={() => {}} icon={true}>
-              <MicOnIcon />
-            </Button>
-            <Button onClick={() => {}} icon={true}>
-              <CameraOffIcon />
-            </Button>
-          </div>
-        )}
+        <div className="media-module__actions">
+          {isMicActive ? <MicOnIcon /> : <MicOffIcon />}
+        </div>
       </div>
     </div>
   );

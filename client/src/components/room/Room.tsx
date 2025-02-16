@@ -2,10 +2,13 @@ import { FC } from "react";
 import { MediaSlotDataType } from "../../room-client/types";
 import Button from "../reused/button/Button";
 import SimpleBar from "simplebar-react";
+import { roomManager } from "../../App";
 
 import {
   MicOnIcon,
+  MicOffIcon,
   CameraOnIcon,
+  CameraOffIcon,
   PhoneIcon,
   ShareDisplayOff,
   ShareLinkIcon,
@@ -17,8 +20,36 @@ type RoomProps = {
   mediaSlots: MediaSlotDataType[];
 };
 
+const isTrackActive = (track?: MediaStreamTrack) => {
+  if (!track) return false;
+  if (!track.onmute && track.enabled && track.readyState === "live") {
+    return true;
+  }
+};
+
 const Room: FC<RoomProps> = ({ mediaSlots }) => {
   console.log("render Room", "mediaSlots", mediaSlots);
+
+  const endCallHandle = () => {
+    roomManager.deletePeer();
+  };
+
+  const videoTrackIsActive = isTrackActive(
+    roomManager.localMediaStream?.getVideoTracks()[0]
+  );
+
+  const audioTrackIsActive = isTrackActive(
+    roomManager.localMediaStream?.getAudioTracks()[0]
+  );
+
+  const videoChangeHandle = () => {
+    roomManager.videoStartStop();
+  };
+
+  const audioChangeHandle = () => {
+    roomManager.audioStartStop();
+  };
+
   return (
     <div className="room">
       <div className="room__media">
@@ -52,12 +83,24 @@ const Room: FC<RoomProps> = ({ mediaSlots }) => {
             <ShareLinkIcon />
           </Button>
           <div className="action-panel__center-group">
-            <Button icon={true} onClick={() => {}} title="Отключить микрофон">
-              <MicOnIcon />
+            <Button
+              icon={true}
+              onClick={audioChangeHandle}
+              title={
+                audioTrackIsActive ? "Выключить микрофон" : "Отключить микрофон"
+              }
+            >
+              {audioTrackIsActive ? <MicOnIcon /> : <MicOffIcon />}
             </Button>
 
-            <Button icon={true} onClick={() => {}} title="Отключить камеру">
-              <CameraOnIcon />
+            <Button
+              icon={true}
+              onClick={videoChangeHandle}
+              title={
+                videoTrackIsActive ? "Отключить камеру" : "Включить камеру"
+              }
+            >
+              {videoTrackIsActive ? <CameraOnIcon /> : <CameraOffIcon />}
             </Button>
 
             <Button
@@ -73,7 +116,7 @@ const Room: FC<RoomProps> = ({ mediaSlots }) => {
           <Button
             icon={true}
             title="Завершить сеанс"
-            onClick={() => {}}
+            onClick={endCallHandle}
             style={{
               marginLeft: "auto",
             }}
@@ -87,13 +130,3 @@ const Room: FC<RoomProps> = ({ mediaSlots }) => {
 };
 
 export default Room;
-
-// TODO: остановка видеопотоков
-// function stopVideoStream(videoElement) {
-//   const stream = videoElement.srcObject;
-//   if (stream) {
-//     const tracks = stream.getTracks();
-//     tracks.forEach(track => track.stop()); // Останавливаем все треки
-//     videoElement.srcObject = null;
-//   }
-// }
