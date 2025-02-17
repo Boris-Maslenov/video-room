@@ -2,43 +2,28 @@ import { Consumer } from "mediasoup-client/lib/types";
 
 export type KindType = "audio" | "video";
 
-export type ProduserDataType = {
+export type RoomDataType = {
   roomId: string;
-  peerId: string;
   peerName: string;
+  peerId: string;
+  ioId: string;
+};
+
+export type ProduserDataType = RoomDataType & {
   id: string;
   kind: KindType;
-  ioId: string;
+  // TODO: экспериментальные поля
+  mediaState: MediaStateType;
 };
 
-export type MediaStreamDataType = {
-  peerName: string;
-  peerId: string;
-  ioId: string;
-  isCreator: boolean;
-  isJoined: boolean;
-  mediaTracks: MediaStreamTrack[];
-  roomId: string;
-  isSelf: boolean;
-};
-
-export type MediaSlotDataType = {
-  peerName: string;
-  peerId: string;
-  ioId: string;
-  isCreator: boolean;
-  isJoined: boolean;
-  //  mediaTracks: MediaStreamTrack[];
+export type MediaSlotDataType = Pick<
+  ProduserDataType,
+  "roomId" | "peerName" | "peerId" | "ioId" | "mediaState"
+> & {
+  isCreator?: boolean;
+  isJoined?: boolean;
+  isSelf?: boolean;
   mediaStream: MediaStream;
-  roomId: string;
-  isSelf: boolean;
-};
-
-export type RoomDataType = {
-  peerName: string;
-  peerId: string;
-  ioId: string;
-  roomId: string;
 };
 
 export type RoomEventsType = {
@@ -56,3 +41,5 @@ export type RoomEventsType = {
 export type RoomEvents = keyof RoomEventsType;
 
 export type ActiveConsumerType = Consumer<{ producerData: ProduserDataType }>;
+
+export type MediaStateType = Record<"micOn" | "camOn" | "screenOn", boolean>;

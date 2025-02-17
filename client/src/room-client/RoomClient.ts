@@ -13,6 +13,7 @@ import {
   RoomEventsType,
   ActiveConsumerType,
   MediaSlotDataType,
+  MediaStateType,
 } from "./types";
 import { socket, apiSend as socketSend } from "../api/api";
 
@@ -26,10 +27,18 @@ type ServerEventsType = {
       name: string;
       recvTransport: Transport;
       roomId: string;
+      mediaState: MediaStateType
     };
     activeProducersData: ProduserDataType[];
+    [key: string]: unknown;
   };
   type: string;
+};
+
+const mediaStateDefault: MediaStateType = {
+  micOn: true,
+  camOn: true,
+  screenOn: false,
 };
 
 /**
@@ -48,8 +57,10 @@ class RoomClient {
   audioProducer?: Producer;
   activeConsumers: ActiveConsumerType[];
   mediaSlots: MediaSlotDataType[];
+  localMediaState: MediaStateType;
 
   constructor() {
+    this.localMediaState = mediaStateDefault;
     this.localMediaStream;
     this.roomData;
     this.device;
@@ -95,6 +106,19 @@ class RoomClient {
           this.deleteSlot(response.data.peer.id);
           this.subscribe("update-peers", this.mediaSlots);
 
+          break;
+        }
+        case "device-change-state": {
+          this.mediaSlots = this.mediaSlots.map((slot) => {
+            if (slot.peerId === response.data.peer.id) {
+              return {
+                ...slot,
+                mediaState: response.data.peer.mediaState
+              };
+            }
+            return slot;
+          });
+          this.subscribe("update-peers", this.mediaSlots);
           break;
         }
         default: {
@@ -200,11 +224,10 @@ class RoomClient {
       peerName: this.roomData.peerName,
       peerId: this.roomData.peerId,
       ioId: this.roomData.ioId,
-      isCreator: false,
-      isJoined: true,
       isSelf: true,
       mediaStream: new MediaStream(this.localMediaStream.getTracks()),
       roomId: this.roomData.roomId,
+      mediaState: this.localMediaState,
     };
 
     this.mediaSlots = this.mediaSlots.concat(selfMediaSlot);
@@ -229,6 +252,7 @@ class RoomClient {
           roomId: current.appData.producerData.roomId,
           isSelf,
           mediaStream: new MediaStream([current.track]),
+          mediaState: current.appData.producerData.mediaState,
         };
       }
       return acc;
@@ -330,23 +354,32 @@ class RoomClient {
         } catch (error) {
           if (error instanceof Error) {
             errback(error);
+            return;
           }
+          console.error(error);
         }
       }
     );
+    try {
+      return await new Promise((res, rej) => {
+        if (!this.recvTransport) {
+          rej("recvTransport не готов");
+          return;
+        }
 
-    return await new Promise((res, rej) => {
-      if (!this.recvTransport) {
-        rej("recvTransport не готов");
+        this.recvTransport.on("connectionstatechange", (state) => {
+          if (state === "connected") {
+            res("connected");
+          }
+        });
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        this.subscribe("error", error);
         return;
       }
-
-      this.recvTransport.on("connectionstatechange", async (state) => {
-        if (state === "connected") {
-          res("connected");
-        }
-      });
-    });
+      console.error(error);
+    }
   }
 
   /**
@@ -423,9 +456,6 @@ class RoomClient {
     }
     try {
       const { audioTrack, videoTrack } = await this.getMediaTracks();
-
-      console.log(audioTrack, videoTrack);
-
       const promiseResult = new Promise<boolean>((res, rej) => {
         this.sendTransport!.on("connectionstatechange", (state) => {
           if (state === "connected") {
@@ -480,14 +510,32 @@ class RoomClient {
     }
   }
 
-  audioStartStop() {
+  async audioStartStop() {
     if (!this.audioProducer) return;
 
     if (this.audioProducer.paused) {
       this.audioProducer.resume();
+      this.localMediaState.micOn = true;
     } else {
       this.audioProducer.pause();
+      this.localMediaState.micOn = false;
     }
+
+    this.mediaSlots = this.mediaSlots.map((slot) => {
+      if (slot.isSelf) {
+        slot.mediaState = this.localMediaState;
+        return slot;
+      }
+      return slot;
+    });
+
+    this.subscribe("update-peers", this.mediaSlots);
+
+    await socketSend("device-change-state", {
+      roomId: this.roomData!.roomId,
+      peerId: this.roomData!.peerId,
+      mediaState: this.localMediaState,
+    });
   }
 
   /**
@@ -514,13 +562,11 @@ class RoomClient {
 
     await this.createRecvTransport();
     const activeProducersData = await this.getProducers(roomId);
-    console.log("activeProducersData", activeProducersData);
 
     this.connectRecvTransport();
 
     for (const producerData of activeProducersData) {
       if (producerData.peerId !== this.roomData?.peerId) {
-        console.log("producerData 1", producerData);
         await this.createConsumer(producerData);
       }
     }
@@ -532,7 +578,6 @@ class RoomClient {
    * Точка входа в комнату
    */
   async joinToRoom(peerName: string, roomId: string) {
-    console.log("joinToRoom");
     if (!peerName || !roomId)
       throw new Error(
         "Для входа в комнату нужно указать id комнаты и имя абонента!"
@@ -546,23 +591,20 @@ class RoomClient {
       this.roomData = roomData;
 
       if (!this.roomData) return;
-      console.log("1");
+
       const produceRes = await this.produce(
         this.roomData.roomId,
         this.roomData.peerId
       );
-      console.log("2");
+
       if (!produceRes) return;
-      console.log("3");
 
       await socketSend<boolean>("joined", {
         peerId: this.roomData.peerId,
         roomId: this.roomData.roomId,
       });
-      console.log("4");
 
       await this.consume(this.roomData.roomId);
-      console.log("5");
 
       return this.roomData;
     } catch (error) {
@@ -596,16 +638,11 @@ class RoomClient {
   async createAndJoinRoom(peerName: string) {
     if (!peerName)
       throw new Error("Для входа в комнату нужно задать имя участника!");
-    console.log("createAndJoinRoom START");
     this.subscribe("room-connecting");
-    console.log("createNewRoom start..");
     const roomData = await this.createNewRoom(peerName);
-    console.log("createNewRoom end");
 
     if (roomData?.peerId && roomData.roomId) {
-      console.log("start produce...");
       await this.produce(roomData.roomId, roomData.peerId);
-      console.log("createAndJoinRoom END");
     }
   }
 
@@ -617,7 +654,9 @@ class RoomClient {
     this.sendTransport = undefined;
     this.recvTransport?.close();
     this.recvTransport = undefined;
+    this.videoProducer?.close();
     this.videoProducer = undefined;
+    this.audioProducer?.close();
     this.audioProducer = undefined;
     this.activeConsumers = [];
     this.mediaSlots = [];
@@ -631,7 +670,6 @@ class RoomClient {
       });
       this.localMediaStream?.getTracks().forEach((track) => track.stop());
       this.leaveRoom();
-      console.log(this.roomData);
       this.subscribe("room-disconnected");
     } catch (e) {
       console.log(e);

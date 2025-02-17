@@ -34,13 +34,13 @@ const Room: FC<RoomProps> = ({ mediaSlots }) => {
     roomManager.deletePeer();
   };
 
-  const videoTrackIsActive = isTrackActive(
-    roomManager.localMediaStream?.getVideoTracks()[0]
-  );
+  // const videoTrackIsActive = isTrackActive(
+  //   roomManager.localMediaStream?.getVideoTracks()[0]
+  // );
 
-  const audioTrackIsActive = isTrackActive(
-    roomManager.localMediaStream?.getAudioTracks()[0]
-  );
+  // const audioTrackIsActive = isTrackActive(
+  //   roomManager.localMediaStream?.getAudioTracks()[0]
+  // );
 
   const videoChangeHandle = () => {
     roomManager.videoStartStop();
@@ -65,8 +65,9 @@ const Room: FC<RoomProps> = ({ mediaSlots }) => {
               <ConsumerRenderer
                 key={key + data.peerId}
                 stream={data.mediaStream}
-                isSelf={data.isSelf}
+                isSelf={data?.isSelf ?? false}
                 peerName={data.peerName}
+                micOn={data.mediaState.micOn}
               />
             ))}
           </div>
@@ -87,20 +88,32 @@ const Room: FC<RoomProps> = ({ mediaSlots }) => {
               icon={true}
               onClick={audioChangeHandle}
               title={
-                audioTrackIsActive ? "Выключить микрофон" : "Отключить микрофон"
+                roomManager.localMediaState.micOn
+                  ? "Выключить микрофон"
+                  : "Отключить микрофон"
               }
             >
-              {audioTrackIsActive ? <MicOnIcon /> : <MicOffIcon />}
+              {roomManager.localMediaState.micOn ? (
+                <MicOnIcon />
+              ) : (
+                <MicOffIcon />
+              )}
             </Button>
 
             <Button
               icon={true}
               onClick={videoChangeHandle}
               title={
-                videoTrackIsActive ? "Отключить камеру" : "Включить камеру"
+                roomManager.localMediaState.camOn
+                  ? "Отключить камеру"
+                  : "Включить камеру"
               }
             >
-              {videoTrackIsActive ? <CameraOnIcon /> : <CameraOffIcon />}
+              {roomManager.localMediaState.camOn ? (
+                <CameraOnIcon />
+              ) : (
+                <CameraOffIcon />
+              )}
             </Button>
 
             <Button

@@ -12,11 +12,13 @@ const ConsumerRenderer: FC<{
   stream: MediaStream;
   isSelf: boolean;
   peerName: string;
-}> = memo(({ stream, isSelf, peerName }) => {
+  micOn: boolean;
+}> = memo(({ stream, isSelf, peerName, micOn }) => {
   const mediaElRef = useRef<HTMLVideoElement>(null);
-  const [readiVideo, setReadiVideo] = useState(false);
+  const [readyVideo, setReadiVideo] = useState(false);
 
   useEffect(() => {
+    console.log();
     if (mediaElRef.current) {
       mediaElRef.current.srcObject = !isSelf
         ? stream
@@ -26,15 +28,13 @@ const ConsumerRenderer: FC<{
         setReadiVideo(true);
       };
     }
-  }, [mediaElRef.current]);
-
-  const isMicActive = stream.getAudioTracks()[0];
+  }, [mediaElRef]);
 
   return (
     <div className="media-module">
       <div className="media-module__background"></div>
       <div className="media-module__root">
-        {readiVideo && (
+        {readyVideo && (
           <div className="media-module__popup">
             <div style={{ zIndex: 1, position: "relative" }}>
               <Button icon={true} onClick={() => {}} title="Развернуть">
@@ -50,7 +50,7 @@ const ConsumerRenderer: FC<{
           autoPlay
           ref={mediaElRef}
         ></video>
-        {!readiVideo && (
+        {!readyVideo && (
           <div className="media-module__spinner">
             <DotsFadeAnimateIcon />
           </div>
@@ -59,7 +59,7 @@ const ConsumerRenderer: FC<{
       <div className="media-module__content">
         {peerName}
         <div className="media-module__actions">
-          {isMicActive ? <MicOnIcon /> : <MicOffIcon />}
+          {micOn ? <MicOnIcon /> : <MicOffIcon />}
         </div>
       </div>
     </div>
