@@ -20,12 +20,12 @@ type RoomProps = {
   mediaSlots: MediaSlotDataType[];
 };
 
-const isTrackActive = (track?: MediaStreamTrack) => {
-  if (!track) return false;
-  if (!track.onmute && track.enabled && track.readyState === "live") {
-    return true;
-  }
-};
+// const isTrackActive = (track?: MediaStreamTrack) => {
+//   if (!track) return false;
+//   if (!track.onmute && track.enabled && track.readyState === "live") {
+//     return true;
+//   }
+// };
 
 const Room: FC<RoomProps> = ({ mediaSlots }) => {
   console.log("render Room", "mediaSlots", mediaSlots);
@@ -48,6 +48,7 @@ const Room: FC<RoomProps> = ({ mediaSlots }) => {
 
   const audioChangeHandle = () => {
     roomManager.audioStartStop();
+    console.log("roomManager.activeConsumers", roomManager.activeConsumers);
   };
 
   return (

@@ -16,9 +16,8 @@ const ConsumerRenderer: FC<{
 }> = memo(({ stream, isSelf, peerName, micOn }) => {
   const mediaElRef = useRef<HTMLVideoElement>(null);
   const [readyVideo, setReadiVideo] = useState(false);
-
+  console.log("11111111", stream.getVideoTracks());
   useEffect(() => {
-    console.log();
     if (mediaElRef.current) {
       mediaElRef.current.srcObject = !isSelf
         ? stream

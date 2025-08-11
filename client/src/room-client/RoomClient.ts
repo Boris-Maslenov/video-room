@@ -27,7 +27,7 @@ type ServerEventsType = {
       name: string;
       recvTransport: Transport;
       roomId: string;
-      mediaState: MediaStateType
+      mediaState: MediaStateType;
     };
     activeProducersData: ProduserDataType[];
     [key: string]: unknown;
@@ -85,12 +85,12 @@ class RoomClient {
     });
 
     socket.on("server-event", async (response: ServerEventsType) => {
+      console.log("new server-event");
       switch (response.type) {
         case "connect-peer": {
           // TODO: оптимизировать это решение!
           if (!this.recvTransport) {
             await this.createRecvTransport();
-            this.connectRecvTransport();
           }
 
           for (const producerData of response.data.activeProducersData) {
@@ -109,11 +109,41 @@ class RoomClient {
           break;
         }
         case "device-change-state": {
+          const newMediaState = response.data.peer.mediaState;
+
+          if (newMediaState.camOn === false) {
+            // Отключение камеры
+            this.activeConsumers = this.activeConsumers
+              .map((consumer) => {
+                if (
+                  consumer.kind === "video" &&
+                  consumer.appData.producerData.peerId === response.data.peer.id
+                ) {
+                  consumer.close();
+                }
+                return consumer;
+              })
+              .filter((consumer) => {
+                if (
+                  consumer.kind === "video" &&
+                  consumer.appData.producerData.peerId === response.data.peer.id
+                ) {
+                  return false;
+                }
+                return true;
+              });
+
+            console.log(
+              "Удалили все связанные консюмеры",
+              this.activeConsumers
+            );
+          }
+
           this.mediaSlots = this.mediaSlots.map((slot) => {
             if (slot.peerId === response.data.peer.id) {
               return {
                 ...slot,
-                mediaState: response.data.peer.mediaState
+                mediaState: newMediaState,
               };
             }
             return slot;
@@ -267,32 +297,22 @@ class RoomClient {
     this.mediaSlots = this.mediaSlots.filter((slot) => slot.peerId !== id);
   }
 
-  private addSlot(id: string) {
+  /**
+   * Cоздает слот для peer
+   */
+  private addSlot(peerId: string) {
     const consumers = this.activeConsumers.filter(
-      (consumer) => consumer.appData.producerData.peerId === id
+      (consumer) => consumer.appData.producerData.peerId === peerId
     );
 
     if (consumers.length === 0) return;
 
+    // Слоты создаются на основании как минимум 1 консюмера
     let slot = this.createSlotFromConsumers(consumers);
 
     if (slot) {
       this.mediaSlots = this.mediaSlots.concat(slot);
     }
-  }
-
-  private createSlots(data: ActiveConsumerType[]) {
-    const ids = data.reduce<string[]>((acc, currnt) => {
-      if (acc.includes(currnt.appData.producerData.peerId)) {
-        return acc;
-      }
-      acc.push(currnt.appData.producerData.peerId);
-      return acc;
-    }, []);
-
-    ids.forEach((id) => {
-      this.addSlot(id);
-    });
   }
 
   /**
@@ -328,6 +348,7 @@ class RoomClient {
     );
 
     this.recvTransport = this.device.createRecvTransport(transportOptions);
+    this.connectRecvTransport();
   }
 
   /**
@@ -454,6 +475,7 @@ class RoomClient {
     if (!this.sendTransport) {
       return Promise.reject(false);
     }
+
     try {
       const { audioTrack, videoTrack } = await this.getMediaTracks();
       const promiseResult = new Promise<boolean>((res, rej) => {
@@ -497,16 +519,19 @@ class RoomClient {
     }
   }
 
-  videoStartStop() {
-    if (!this.videoProducer) return;
-
-    if (this.videoProducer.paused) {
-      this.videoProducer.resume();
+  async videoStartStop() {
+    if (!this.videoProducer) {
+      // TODO: создание нового videoProducer
     } else {
-      this.videoProducer.pause();
-      if (this.videoProducer?.track?.enabled) {
-        this.videoProducer.track.enabled = false;
-      }
+      this.videoProducer.close();
+      this.videoProducer = undefined;
+      this.localMediaState.camOn = false;
+
+      await socketSend("device-change-state", {
+        roomId: this.roomData!.roomId,
+        peerId: this.roomData!.peerId,
+        mediaState: this.localMediaState,
+      });
     }
   }
 
@@ -563,14 +588,27 @@ class RoomClient {
     await this.createRecvTransport();
     const activeProducersData = await this.getProducers(roomId);
 
-    this.connectRecvTransport();
-
     for (const producerData of activeProducersData) {
       if (producerData.peerId !== this.roomData?.peerId) {
         await this.createConsumer(producerData);
       }
     }
-    this.createSlots(this.activeConsumers);
+
+    /**
+     * У каждого пира может быть несколько продюсеров, сначало определим id пиров,
+     * далее для каждого пира создадим слот на основании его консюмеров
+     */
+    this.activeConsumers
+      .reduce<string[]>((acc, currnt) => {
+        if (acc.includes(currnt.appData.producerData.peerId)) return acc;
+
+        acc.push(currnt.appData.producerData.peerId);
+        return acc;
+      }, [])
+      .forEach((peerId) => {
+        this.addSlot(peerId);
+      });
+
     this.subscribe("update-peers", this.mediaSlots.concat());
   }
 
@@ -698,9 +736,3 @@ class RoomClient {
 }
 
 export default RoomClient;
-
-// const combinedStream = new MediaStream();
-// combinedStream.addTrack(this.videoConsumer!.track);
-// combinedStream.addTrack(this.audioConsumer!.track);
-// const el = document.querySelector("#video2") as HTMLVideoElement;
-// el.srcObject = combinedStream;
