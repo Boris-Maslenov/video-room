@@ -1,5 +1,16 @@
 import { Socket } from "socket.io";
-import { Producer, Transport, Worker, Router } from "mediasoup/node/lib/types";
+import {
+  Producer,
+  Transport,
+  Worker,
+  Router,
+  RtpCapabilities,
+  DtlsParameters,
+  RtpParameters,
+} from "mediasoup/node/lib/types";
+import { TransportParams } from "./utils/webRtcUtils";
+
+export type MediaKind = "audio" | "video";
 
 export interface SocketResponse<T = null> {
   ok: boolean;
@@ -7,14 +18,49 @@ export interface SocketResponse<T = null> {
   error?: { message: string };
 }
 
+export type CreateRoomReq = unknown;
+
+export type CreatePeerReq = {
+  name: string;
+  roomId: string;
+  socketId: string;
+  isOwner: boolean;
+};
+
 export type SocketEvents = {
   createRoom: (
-    data: unknown,
+    data: CreateRoomReq,
     callback: (response: SocketResponse<{ room: RoomDto }>) => void
   ) => void;
   createPeer: (
-    data: { name: string; roomId: string; isOwner: boolean },
+    data: CreatePeerReq,
     callback: (response: SocketResponse<{ peer: PeerDto }>) => void
+  ) => void;
+  joinPeer: (
+    data: { id: string },
+    callback: (response: SocketResponse<{ peer: PeerDto }>) => void
+  ) => void;
+  getRouterRtpCapabilities: (
+    data: { roomId: string },
+    callback: (
+      response: SocketResponse<{ rtpCapabilities: RtpCapabilities }>
+    ) => void
+  ) => void;
+  createSendTransport: (
+    data: { peerId: string },
+    callback: (
+      response: SocketResponse<{ transportParams: TransportParams }>
+    ) => void
+  ) => void;
+  connectSendTransport: (
+    data: { dtlsParameters: DtlsParameters; peerId: string },
+    callback: (
+      response: SocketResponse<{ dtsParameters: TransportParams }>
+    ) => void
+  ) => void;
+  produce: (
+    data: { peerId: string; kind: MediaKind; rtpParameters: RtpParameters },
+    callback: (response: SocketResponse<{ id: string }>) => void
   ) => void;
 };
 

@@ -1,5 +1,3 @@
-import mediasoup from "mediasoup";
-import { randomUUID } from "crypto";
 import { Server } from "socket.io";
 import http from "http";
 import { WS_PORT } from "./config";
