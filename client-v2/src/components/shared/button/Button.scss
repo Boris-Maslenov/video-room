@@ -1,0 +1,42 @@
+.Button {
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+
+  &.variant-classic {
+    border: 1px solid #806491;
+  }
+  &.size-medium {
+    height: 32px;
+    font-weight: 500;
+    padding: 5px 12px 5px 12px;
+  }
+  &.size-smal {
+    height: 24px;
+  }
+  &.size-large {
+    height: 48px;
+    padding: 8px 30px 8px 30px;
+    min-width: 190px;
+  }
+  &.color-default {
+    background: #806491;
+    color: #fff;
+    &:hover:not(:disabled) {
+      background: #7c5495;
+      border-color: #7c5495;
+    }
+  }
+
+  &:disabled {
+    background-color: transparent;
+    color: #999;
+    border-color: #999;
+  }
+
+  &:not(:disabled) {
+    cursor: pointer;
+  }
+}

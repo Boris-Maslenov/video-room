@@ -1,17 +1,13 @@
-import { useState } from "react";
-import Modal from "./components/shared/modal/Modal";
-import "@radix-ui/themes/styles.css";
+import Button from "./components/shared/button/Button";
+// import "@radix-ui/themes/styles.css";
 
 const App = () => {
-  const [open, setOpen] = useState(false);
   return (
     <>
-      <button onClick={() => setOpen(true)}>open</button>
-      <Modal
-        open={open}
-        openChange={(open) => setOpen(open)}
-        title="Создать новую комнату"
-      />
+      <Button size="large">Создать комнату</Button>
+      <Button disabled={true} size="large">
+        Подключиться
+      </Button>
     </>
   );
 };
