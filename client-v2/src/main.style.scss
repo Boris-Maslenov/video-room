@@ -9,6 +9,14 @@
   margin: 0;
 }
 
+button,
+input,
+textarea {
+  outline: none;
+  border: none;
+  background: transparent;
+}
+
 html,
 body {
   font-family: $font-family;
