@@ -4,23 +4,29 @@
   align-items: center;
   justify-content: center;
   border-radius: 4px;
+  font-family: var(--font-family);
+  font-size: 14px;
 
   &.variant-classic {
     border: 1px solid #806491;
   }
+
   &.size-medium {
     height: 32px;
     font-weight: 500;
     padding: 5px 12px 5px 12px;
   }
+
   &.size-smal {
     height: 24px;
   }
+
   &.size-large {
     height: 48px;
     padding: 8px 30px 8px 30px;
     min-width: 190px;
   }
+
   &.color-default {
     background: #806491;
     color: #fff;

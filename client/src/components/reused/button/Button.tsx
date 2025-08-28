@@ -1,6 +1,8 @@
 import { FC, ReactNode, ButtonHTMLAttributes } from "react";
 import classNames from "classnames";
 
+import Dashboard from "../../dashboard/Dashboard";
+
 type ButtonPropsType = {
   icon?: boolean;
   children: ReactNode;

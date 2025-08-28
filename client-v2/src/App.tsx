@@ -1,14 +1,14 @@
-import Button from "./components/shared/button/Button";
+import "./App.scss";
+import Dashboard from "./components/dashboard/Dashboard";
+import { StoresProvider } from "./context/StoresProvider";
 // import "@radix-ui/themes/styles.css";
 
 const App = () => {
+  console.log("app render");
   return (
-    <>
-      <Button size="large">Создать комнату</Button>
-      <Button disabled={true} size="large">
-        Подключиться
-      </Button>
-    </>
+    <StoresProvider>
+      <Dashboard />
+    </StoresProvider>
   );
 };
 

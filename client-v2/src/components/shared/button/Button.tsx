@@ -9,19 +9,19 @@ interface ButtonProps {
   color?: "default";
   loading?: false;
   disabled?: boolean;
+  onClick: () => void;
 }
-
-// <div className={classNames("btn", size && `btn--${size}`)} />
 
 const Button: FC<ButtonProps> = ({
   children,
   size,
   variant,
   disabled = false,
+  onClick,
 }) => {
   return (
-    // <button className="   Button size-medium variant-classic">{children}</button>
     <button
+      onClick={onClick}
       disabled={disabled}
       className={classNames(
         "Button",
