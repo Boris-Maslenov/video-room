@@ -1,0 +1,22 @@
+.Input {
+  width: 100%;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0 10px;
+  font-size: 15px;
+  line-height: 1;
+  color: #6550b9;
+  box-shadow: 0 0 0 1px #c2b5f5;
+  height: 35px;
+  & input {
+    display: block;
+    width: 100%;
+  }
+}
+
+.Input:focus {
+  box-shadow: 0 0 0 2px #aa99ec;
+}

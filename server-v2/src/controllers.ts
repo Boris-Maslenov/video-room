@@ -1,7 +1,8 @@
 import { HandleParameters } from "./types";
-import { createRoom, getRoom } from "./models/room";
-import { getPeer, updatePeer } from "./models/peer";
-import { createPeer as createPeerService } from "./services/peer.service";
+import { getRoom } from "./models/room";
+import { getPeer } from "./models/peer";
+import { createPeerService } from "./services/peer.service";
+import { createRoomService, joinRoomService } from "./services/room.service";
 import { pick } from "./utils/dataUtils";
 import { createWebRtcTransport } from "./utils/webRtcUtils";
 
@@ -13,11 +14,11 @@ export const createRoomController: (
   ...args: HandleParameters<"createRoom">
 ) => Promise<void> = async function (_, callback) {
   try {
-    const room = await createRoom();
+    const room = await createRoomService();
     callback?.({
       ok: true,
       data: {
-        room: pick(room, ["id", "createdAt"]),
+        ...pick(room, ["id", "createdAt"]),
       },
     });
   } catch (err) {
@@ -41,7 +42,15 @@ export const createPeerController: (
     callback?.({
       ok: true,
       data: {
-        peer,
+        ...pick(peer, [
+          "id",
+          "mediaState",
+          "name",
+          "roomId",
+          "socketId",
+          "isJoined",
+          "rtpCapabilities",
+        ]),
       },
     });
   } catch (err) {
@@ -54,11 +63,36 @@ export const createPeerController: (
 
 /**
  * Добавление пира в комнату (до отправки или подписки на медиапотоки)
+ * после того как комната создана, пир создан и настало время сравнить rtpCapabilities роутера и клиента
  */
 
-export const joinPeerController: (
-  ...args: HandleParameters<"joinPeer">
-) => void = function () {};
+export const joinRoomController: (
+  ...args: HandleParameters<"joinRoom">
+) => void = function (data, callback) {
+  try {
+    const { peerId, roomId, rtpCapabilities } = data;
+    const { peer, room } = joinRoomService(roomId, peerId, rtpCapabilities);
+    callback?.({
+      ok: true,
+      data: {
+        ...pick(peer, [
+          "id",
+          "mediaState",
+          "name",
+          "roomId",
+          "socketId",
+          "isJoined",
+          "rtpCapabilities",
+        ]),
+      },
+    });
+  } catch (err) {
+    callback?.({
+      ok: false,
+      error: { message: err?.message ?? "Ошибка добавления пира в комнату!" },
+    });
+  }
+};
 
 /**
  * Этапы подключения пира:
@@ -78,7 +112,7 @@ export const getRouterRtpCapabilities: (
     callback?.({
       ok: true,
       data: {
-        rtpCapabilities,
+        ...rtpCapabilities,
       },
     });
   } catch (err) {
@@ -105,7 +139,7 @@ export const createSendTransport: (
       room.router
     );
 
-    updatePeer({ ...peer, sendTransport: transport });
+    // updatePeer({ ...peer, sendTransport: transport });
 
     callback?.({
       ok: true,

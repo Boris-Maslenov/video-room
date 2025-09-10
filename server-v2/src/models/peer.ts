@@ -3,8 +3,8 @@ import { peers } from "../data/peers";
 import { randomUUID } from "crypto";
 
 export const createPeer = (
-  name: string,
   roomId: string,
+  name: string,
   socketId: string,
   isOwner: boolean
 ): Peer => ({
@@ -14,6 +14,7 @@ export const createPeer = (
   socketId,
   isJoined: false,
   mediaState: null,
+  rtpCapabilities: null,
   sendTransport: null,
   recvTransport: null,
   videoProducer: null,
@@ -21,7 +22,7 @@ export const createPeer = (
   ...(isOwner ? { ownerId: roomId } : {}),
 });
 
-export const getPeer = (id: string) => {
+export const getPeer = (id: string): Peer => {
   const foundPeer = peers.find((peer) => peer.id === id);
 
   if (!foundPeer) {
@@ -31,7 +32,12 @@ export const getPeer = (id: string) => {
   return foundPeer;
 };
 
-export const updatePeer = (newPeer: Peer) => {
-  let foundPeer = getPeer(newPeer.id);
-  foundPeer = newPeer;
-};
+// export const updatePeer = (newPeer: Peer) => {
+//   let foundPeer = getPeer(newPeer.id);
+
+//   if (!foundPeer) {
+//     throw new Error(`Пир ${newPeer.id} не найден`);
+//   }
+
+//   foundPeer = newPeer;
+// };

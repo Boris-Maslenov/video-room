@@ -8,10 +8,18 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
   return <Ctx.Provider value={root}>{children}</Ctx.Provider>;
 };
 
-export const useDevicesStore = () => {
+export const useMediaSoupStore = () => {
   const root = useContext(Ctx);
   if (!root) {
     throw new Error("Root store not found!");
   }
   return root.mediaSoupClient;
+};
+
+export const useDevicesStore = () => {
+  const root = useContext(Ctx);
+  if (!root) {
+    throw new Error("Root store not found!");
+  }
+  return root.mediaDevices;
 };

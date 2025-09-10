@@ -231,6 +231,7 @@ class RoomClient {
       "produce",
       async ({ kind, rtpParameters, appData }, callback, errback) => {
         // appData передаем в sendTransport.produce()
+        // kind берется из медитрека
         try {
           const data = await socketSend<{ id: string }>("createProducer", {
             kind,
@@ -478,6 +479,7 @@ class RoomClient {
 
     try {
       const { audioTrack, videoTrack } = await this.getMediaTracks();
+
       const promiseResult = new Promise<boolean>((res, rej) => {
         this.sendTransport!.on("connectionstatechange", (state) => {
           if (state === "connected") {
@@ -661,7 +663,6 @@ class RoomClient {
       });
       this.roomData = response;
     } catch (error) {
-      console.log("createNewRoom error", error);
       if (error instanceof Error) {
         this.subscribe("error", error);
       }

@@ -11,10 +11,16 @@
     border: 1px solid #806491;
   }
 
+  &.variant-outline {
+    border: 1px solid #806491;
+    color: #111;
+  }
+
   &.size-medium {
     height: 32px;
     font-weight: 500;
     padding: 5px 12px 5px 12px;
+    min-width: 120px;
   }
 
   &.size-smal {

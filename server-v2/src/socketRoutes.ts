@@ -5,6 +5,7 @@ import {
   getRouterRtpCapabilities,
   createSendTransport,
   connectSendTransport,
+  joinRoomController,
 } from "./controllers";
 import { SocketEvents } from "./types";
 
@@ -13,6 +14,7 @@ export const createSocketRouter = (io: Server) => {
     console.log("io.connection: ", socket.id);
     socket.on("createRoom", createRoomController);
     socket.on("createPeer", createPeerController);
+    socket.on("joinRoom", joinRoomController);
     socket.on("getRouterRtpCapabilities", getRouterRtpCapabilities);
     socket.on("createSendTransport", createSendTransport);
     socket.on("connectSendTransport", connectSendTransport);

@@ -48,7 +48,6 @@ const Room: FC<RoomProps> = ({ mediaSlots }) => {
 
   const audioChangeHandle = () => {
     roomManager.audioStartStop();
-    console.log("roomManager.activeConsumers", roomManager.activeConsumers);
   };
 
   return (

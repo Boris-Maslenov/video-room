@@ -27,9 +27,11 @@
   display: flex;
   margin-top: 25px;
   justify-content: flex-end;
+  column-gap: 20px;
 }
 
 .DialogTitle {
+  color: #111;
   margin: 0;
   font-weight: 500;
   font-size: 17px;
@@ -48,6 +50,9 @@
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+.fields-container {
+  margin: 25px 0;
 }
 
 @keyframes overlayShow {

@@ -18,33 +18,36 @@ export interface SocketResponse<T = null> {
   error?: { message: string };
 }
 
-export type CreateRoomReq = unknown;
+export type CreateRoomReq = never;
 
 export type CreatePeerReq = {
   name: string;
   roomId: string;
-  socketId: string;
   isOwner: boolean;
+};
+
+export type JoinRoomReq = {
+  roomId: string;
+  peerId: string;
+  rtpCapabilities: RtpCapabilities;
 };
 
 export type SocketEvents = {
   createRoom: (
     data: CreateRoomReq,
-    callback: (response: SocketResponse<{ room: RoomDto }>) => void
+    callback: (response: SocketResponse<RoomDto>) => void
   ) => void;
   createPeer: (
     data: CreatePeerReq,
-    callback: (response: SocketResponse<{ peer: PeerDto }>) => void
+    callback: (response: SocketResponse<PeerDto>) => void
   ) => void;
-  joinPeer: (
-    data: { id: string },
-    callback: (response: SocketResponse<{ peer: PeerDto }>) => void
+  joinRoom: (
+    data: JoinRoomReq,
+    callback: (response: SocketResponse<PeerDto>) => void
   ) => void;
   getRouterRtpCapabilities: (
     data: { roomId: string },
-    callback: (
-      response: SocketResponse<{ rtpCapabilities: RtpCapabilities }>
-    ) => void
+    callback: (response: SocketResponse<RtpCapabilities>) => void
   ) => void;
   createSendTransport: (
     data: { peerId: string },
@@ -79,15 +82,19 @@ export type Peer = {
   roomId: string;
   socketId: string;
   name: string;
-  isJoined: boolean; // вошел в комнату
-  // isMediaReady: boolean; // может транслировать медиа
-  // isOnline: boolean; // есть связь
+  rtpCapabilities: RtpCapabilities | null;
+  isJoined: boolean;
   mediaState: MediaState | null;
+
   videoProducer: ProducerType;
   audioProducer: ProducerType;
-  // screenProducer: null;
+
   sendTransport: TransportType;
   recvTransport: TransportType;
+
+  // isMediaReady: boolean; // может транслировать медиа
+  // isOnline: boolean; // есть связь
+  // screenProducer: null;
 };
 
 export type PeerDto = Omit<
@@ -97,7 +104,7 @@ export type PeerDto = Omit<
 
 export type Room = {
   id: string;
-  peers: Map<string, Peer>;
+  peers: Array<Peer>;
   ownerId?: string;
   createdAt: Date;
   worker: Worker;
