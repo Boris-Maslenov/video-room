@@ -19,11 +19,11 @@ const Dashboard: FC = () => {
   const audioTrack = devicesStore.audioTrack;
 
   useEffect(() => {
-    // const init = async () => {
-    //   await devicesStore.init();
-    //   await devicesStore.startMediaTracks();
-    // };
-    // init();
+    const init = async () => {
+      await devicesStore.init();
+      await devicesStore.startMediaTracks();
+    };
+    init();
   }, []);
 
   const createRoomHandle = (peerName: string) => {

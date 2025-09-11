@@ -4,12 +4,11 @@ import { Device } from "mediasoup-client";
 import type {
   RtpCapabilities,
   TransportOptions,
-  ConsumerOptions,
   Transport,
   Producer,
 } from "mediasoup-client/types";
 import { apiSend } from "../api/api";
-import { KindType, ApiResult } from "../api/api.types";
+import { KindType } from "../api/api.types";
 
 export type MediaDevice = {
   deviceId: string;
@@ -33,10 +32,16 @@ const printError = (err: unknown) => {
 
 type peerStatusTypes = "offline" | "connecting" | "joined" | "online";
 
+const producersMap = {
+  audio: "audioProducer",
+  video: "videoProducer",
+} as Record<KindType, ProducerKey>;
+
 class MediasoupClientStore {
   root: RootStore;
   peerId?: string;
   peerName?: string;
+  roomId?: string;
   isJoined: boolean = false;
   peerStatus: peerStatusTypes = "offline";
   localMediaStream: MediaStream | null = null;
@@ -51,6 +56,45 @@ class MediasoupClientStore {
     this.device = new Device();
 
     makeAutoObservable(this);
+  }
+
+  private setLocalProducer(produer: Producer) {
+    // TODO: навесить события на продюсер
+    // producer.on('transportclose', ...) — транспорт умер → действуем (чистим состояние).
+    // producer.on('trackended', ...) — исходный MediaStreamTrack закончился (пользователь «Stop sharing», камера пропала) → действуем (закрываем продюсер).
+    // Observer:
+    // producer.observer.on('close', ...) — продюсер уже закрыт → просто синхронизируем UI/стор.
+    // producer.observer.on('pause', ...) — уже на паузе → обновляем индикаторы.
+    // producer.observer.on('resume', ...) — уже возобновлён → обновляем индикаторы.
+    // producer.observer.on('trackended', ...) — факт «трек закончился» (для логов).
+    const kind = produer.kind as KindType;
+    let existingProducer = this[producersMap[kind]];
+
+    if (existingProducer) {
+      (this[producersMap[kind]] as Producer).close();
+      this[producersMap[kind]] = null;
+    }
+
+    this[producersMap[kind]] = produer;
+  }
+
+  private deleteLocalProducer(produer: Producer) {
+    const kind = produer.kind as KindType;
+    let existingProducer = this[producersMap[kind]];
+
+    if (existingProducer) {
+      (this[producersMap[kind]] as Producer).close();
+      this[producersMap[kind]] = null;
+    }
+  }
+
+  getDefaultRoomData() {
+    if (!this.roomId || !this.peerId) {
+      throw new Error(
+        "getDefaultRoomData: this.roomId | !this.peerId not found"
+      );
+    }
+    return { roomId: this.roomId, peerId: this.peerId };
   }
 
   /**
@@ -69,9 +113,13 @@ class MediasoupClientStore {
    * loadDevice
    * Собирает возможности браузера, сверяет иx с возможностями роутера, строит профили отправки приема
    */
-  async loadDevice(routerRtpCapabilities: RtpCapabilities) {
+  private async loadDevice(routerRtpCapabilities: RtpCapabilities) {
     if (!this.device) {
       throw new Error("device not created");
+    }
+
+    if (this.device.loaded) {
+      return this.device.rtpCapabilities;
     }
 
     await this.device.load({ routerRtpCapabilities });
@@ -83,7 +131,6 @@ class MediasoupClientStore {
    * joinRoom
    * Отправляем device.rtpCapabilities если все ок то пир считается добавленным в комнату
    */
-
   async joinRoom(
     roomId: string,
     peerId: string,
@@ -104,24 +151,26 @@ class MediasoupClientStore {
    * Эти события сработают только после transport.produce
    * 'connect' сработает только при первом transport.produce
    */
-  async createSendTransport() {
+  private async createSendTransport() {
     if (!this.device) {
-      throw new Error("device not created");
+      throw new Error("createSendTransport: device not created");
     }
-    const { data } = await apiSend<TransportOptions>("createSendTransport", {
-      data: { peerId: "0" },
-    });
 
-    this.sendTransport = this.device.createSendTransport(data);
+    const { data } = await apiSend<{ transportParams: TransportOptions }>(
+      "createSendTransport",
+      this.getDefaultRoomData()
+    );
+
+    this.sendTransport = this.device.createSendTransport(data.transportParams);
 
     this.sendTransport.on(
       "connect",
       async ({ dtlsParameters }, callback, errback) => {
         try {
           await apiSend("connectSendTransport", {
-            data: { dtlsParameters, peerId: "0" },
+            dtlsParameters,
+            ...this.getDefaultRoomData(),
           });
-          // TODO: тут вероятно можно подать запрос на join
           callback();
         } catch (error) {
           if (error instanceof Error) {
@@ -137,7 +186,9 @@ class MediasoupClientStore {
         // appData передаем в sendTransport.produce()
         try {
           const { data } = await apiSend<{ id: string }>("produce", {
-            data: { kind, rtpParameters, peerId: "0" },
+            kind,
+            rtpParameters,
+            ...this.getDefaultRoomData(),
           });
           callback(data);
         } catch (error) {
@@ -147,39 +198,28 @@ class MediasoupClientStore {
         }
       }
     );
+
+    this.sendTransport.on("connectionstatechange", (state) => {
+      // connected (ICE кандидаты собрались, DTLS установлено) не зависит от produce
+      if (state === "connected") {
+      }
+      if (state === "disconnected" || state === "failed") {
+      }
+    });
   }
 
   /**
    * produceMediaTrack
    * Создает продюсер. Отправка медиа потока в комнату
    */
-  async produceMediaTrack(track: MediaStreamTrack, kind: KindType) {
+  private async produceMediaTrack(track: MediaStreamTrack) {
     if (!this.sendTransport) {
       throw new Error("sendTransport not found");
     }
 
     try {
-      const producersMap = {
-        audio: "audioProducer",
-        video: "videoProducer",
-      } as Record<KindType, ProducerKey>;
-
-      let existingProducer = this[producersMap[kind]];
-
-      if (existingProducer) {
-        existingProducer.close();
-        existingProducer = null;
-      }
-      // TODO: навесить события на продюсер
-      // producer.on('transportclose', ...) — транспорт умер → действуем (чистим состояние).
-      // producer.on('trackended', ...) — исходный MediaStreamTrack закончился (пользователь «Stop sharing», камера пропала) → действуем (закрываем продюсер).
-      // Observer:
-      // producer.observer.on('close', ...) — продюсер уже закрыт → просто синхронизируем UI/стор.
-      // producer.observer.on('pause', ...) — уже на паузе → обновляем индикаторы.
-      // producer.observer.on('resume', ...) — уже возобновлён → обновляем индикаторы.
-      // producer.observer.on('trackended', ...) — факт «трек закончился» (для логов).
-
-      this[producersMap[kind]] = await this.sendTransport.produce({ track });
+      const produer = await this.sendTransport.produce({ track });
+      this.setLocalProducer(produer);
     } catch (err) {
       if (err instanceof Error) {
         throw Error;
@@ -191,7 +231,6 @@ class MediasoupClientStore {
    * createRoom
    * Создание новой комнаты
    */
-
   async createRoom(peerName: string) {
     try {
       // 1 создаем пуствую комнату
@@ -199,32 +238,39 @@ class MediasoupClientStore {
         id: string;
         createAt: string;
       }>("createRoom");
-      console.log("1 создали новую комнату", dataRoom);
+      this.roomId = dataRoom.id;
 
-      // 2 создаем пира в этой комнате
+      // 2 Запрос Rtp Capabilities
+      const routerRtpCapabilities = await this.gerRouterRtpCapabilities(
+        dataRoom.id
+      );
+
+      // 3 создаем пира в этой комнате
       const { data: dataPeer } = await apiSend<Peer>("createPeer", {
         roomId: dataRoom.id,
         name: peerName,
       });
-      console.log("2 создали пира", dataPeer);
-
-      // 3 Запрос Rtp Capabilities
-      const routerRtpCapabilities = await this.gerRouterRtpCapabilities(
-        dataRoom.id
-      );
-      console.log("3 routerRtpCapabilities получены", routerRtpCapabilities);
+      this.peerId = dataPeer.id;
 
       // 4 загружаем Device
       const rtpCapabilities = await this.loadDevice(routerRtpCapabilities);
-      console.log("4 Device загружен", rtpCapabilities);
 
-      // 5 Сервер добавит пира в комнату, после чего можно подписываться и передавать Media
-      const data = await this.joinRoom(
+      // 5 Сервер добавит пира в комнату (isJoined = true), после чего можно подписываться и передавать Media
+      const peer = await this.joinRoom(
         dataRoom.id,
         dataPeer.id,
         rtpCapabilities
       );
-      console.log("5 Пир добавлен в комнату ура", data);
+
+      await this.createSendTransport();
+
+      const mediaTracks = this.root.mediaDevices.getMediaTracks();
+
+      if (mediaTracks.length) {
+        await Promise.all(
+          mediaTracks.map((track) => this.produceMediaTrack(track))
+        );
+      }
     } catch (err) {
       printError(err);
     }

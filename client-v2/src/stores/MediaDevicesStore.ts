@@ -151,6 +151,12 @@ class MediaDevicesStore {
 
     return mediaTracks;
   }
+
+  getMediaTracks() {
+    return [this.videoTrack, this.audioTrack].filter(
+      Boolean
+    ) as MediaStreamTrack[];
+  }
 }
 
 export default MediaDevicesStore;
