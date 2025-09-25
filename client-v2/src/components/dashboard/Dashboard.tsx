@@ -36,7 +36,13 @@ const Dashboard: FC = () => {
         <Button size="large" onClick={() => setCreateRoomOpen(true)}>
           Создать комнату
         </Button>
-        <Button size="large" onClick={() => console.log("Подключиться")}>
+        <Button
+          size="large"
+          onClick={() => {
+            console.log("Подключиться");
+            mediaStore.enterRoom("0", "Boris");
+          }}
+        >
           Подключиться
         </Button>
         {isCreateRoomOpen && (

@@ -1,4 +1,4 @@
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable, runInAction } from "mobx";
 import { RootStore } from "./RootStore";
 import { Device } from "mediasoup-client";
 import type {
@@ -6,6 +6,9 @@ import type {
   TransportOptions,
   Transport,
   Producer,
+  Consumer,
+  RtpParameters,
+  ConsumerOptions,
 } from "mediasoup-client/types";
 import { apiSend } from "../api/api";
 import { KindType } from "../api/api.types";
@@ -30,7 +33,19 @@ const printError = (err: unknown) => {
   console.error(err);
 };
 
-type peerStatusTypes = "offline" | "connecting" | "joined" | "online";
+type NetworkPeerStatus = "offline" | "connecting" | "online";
+
+type RemotePeer = {
+  id: string;
+  roomId: string;
+  name: string;
+  producerIds: string[];
+  socketId: string;
+  isJoined: boolean;
+  status: NetworkPeerStatus;
+};
+
+type ClientRemotePeer = RemotePeer & { consumers: Consumer[] };
 
 const producersMap = {
   audio: "audioProducer",
@@ -43,13 +58,14 @@ class MediasoupClientStore {
   peerName?: string;
   roomId?: string;
   isJoined: boolean = false;
-  peerStatus: peerStatusTypes = "offline";
+  peerStatus: NetworkPeerStatus = "offline";
   localMediaStream: MediaStream | null = null;
   device: Device;
   sendTransport: Transport | null = null;
   recvTransport: Transport | null = null;
   videoProducer: Producer | null = null;
   audioProducer: Producer | null = null;
+  remotePeers: ClientRemotePeer[] = [];
 
   constructor(root: RootStore) {
     this.root = root;
@@ -80,7 +96,7 @@ class MediasoupClientStore {
 
   private deleteLocalProducer(produer: Producer) {
     const kind = produer.kind as KindType;
-    let existingProducer = this[producersMap[kind]];
+    let existingProducer = Boolean(this[producersMap[kind]]);
 
     if (existingProducer) {
       (this[producersMap[kind]] as Producer).close();
@@ -88,7 +104,7 @@ class MediasoupClientStore {
     }
   }
 
-  getDefaultRoomData() {
+  private get defaultRoomData() {
     if (!this.roomId || !this.peerId) {
       throw new Error(
         "getDefaultRoomData: this.roomId | !this.peerId not found"
@@ -128,24 +144,6 @@ class MediasoupClientStore {
   }
 
   /**
-   * joinRoom
-   * Отправляем device.rtpCapabilities если все ок то пир считается добавленным в комнату
-   */
-  async joinRoom(
-    roomId: string,
-    peerId: string,
-    rtpCapabilities: RtpCapabilities
-  ) {
-    const { data } = await apiSend<Peer>("joinRoom", {
-      roomId,
-      peerId,
-      rtpCapabilities,
-    });
-
-    return data;
-  }
-
-  /**
    * createSendTransport
    * Создаем produce transport и навешививаем события 'connect' и 'produce',
    * Эти события сработают только после transport.produce
@@ -158,7 +156,7 @@ class MediasoupClientStore {
 
     const { data } = await apiSend<{ transportParams: TransportOptions }>(
       "createSendTransport",
-      this.getDefaultRoomData()
+      this.defaultRoomData
     );
 
     this.sendTransport = this.device.createSendTransport(data.transportParams);
@@ -169,7 +167,7 @@ class MediasoupClientStore {
         try {
           await apiSend("connectSendTransport", {
             dtlsParameters,
-            ...this.getDefaultRoomData(),
+            ...this.defaultRoomData,
           });
           callback();
         } catch (error) {
@@ -188,7 +186,7 @@ class MediasoupClientStore {
           const { data } = await apiSend<{ id: string }>("produce", {
             kind,
             rtpParameters,
-            ...this.getDefaultRoomData(),
+            ...this.defaultRoomData,
           });
           callback(data);
         } catch (error) {
@@ -209,17 +207,17 @@ class MediasoupClientStore {
   }
 
   /**
-   * produceMediaTrack
+   * produce
    * Создает продюсер. Отправка медиа потока в комнату
    */
-  private async produceMediaTrack(track: MediaStreamTrack) {
+  private async produce(track: MediaStreamTrack) {
     if (!this.sendTransport) {
       throw new Error("sendTransport not found");
     }
 
     try {
-      const produer = await this.sendTransport.produce({ track });
-      this.setLocalProducer(produer);
+      const producer = await this.sendTransport.produce({ track });
+      this.setLocalProducer(producer);
     } catch (err) {
       if (err instanceof Error) {
         throw Error;
@@ -228,6 +226,131 @@ class MediasoupClientStore {
   }
 
   /**
+   * consume
+   * Создает консюмеры. Подписка на медиа потоки других участников
+   */
+  private async consume() {
+    const remoteProducersData = this.remotePeers.reduce<
+      { remotePeerId: string; producerId: string }[]
+    >((acc, cur) => {
+      const res = cur.producerIds.map((val) => ({
+        remotePeerId: cur.id,
+        producerId: val,
+      }));
+
+      acc.push(...res);
+      return acc;
+    }, []);
+
+    const { roomId, peerId } = this.defaultRoomData;
+
+    return Promise.all(
+      remoteProducersData.map((p) =>
+        this.createConsumer(roomId, peerId, p.remotePeerId, p.producerId)
+      )
+    );
+  }
+
+  /**
+   * joinRoom
+   * Отправляем device.rtpCapabilities если все ок то пир считается добавленным в комнату (сервер сделает рассылку о новом пире)
+   */
+  private async joinRoom(
+    roomId: string,
+    peerId: string,
+    rtpCapabilities: RtpCapabilities
+  ) {
+    const { data } = await apiSend<{
+      remotePeers: RemotePeer[];
+      peer: Peer;
+    }>("joinRoom", {
+      roomId,
+      peerId,
+      rtpCapabilities,
+    });
+
+    return data;
+  }
+
+  /**
+   * createRecvTransport
+   * Создает транспорт для приема медиа
+   */
+  private async createRecvTransport() {
+    const { data } = await apiSend<{ transportParams: TransportOptions }>(
+      "createRecvTransport",
+      this.defaultRoomData
+    );
+    this.recvTransport = this.device.createRecvTransport(data.transportParams);
+
+    this.recvTransport.on(
+      "connect",
+      async ({ dtlsParameters }, callback, errback) => {
+        try {
+          console.log("recvTransport connect");
+          await apiSend("connectRecvTransport", {
+            dtlsParameters,
+            ...this.defaultRoomData,
+          });
+          callback();
+        } catch (error) {
+          if (error instanceof Error) {
+            console.log("err", error);
+            errback(error);
+          }
+        }
+      }
+    );
+
+    this.recvTransport.on("connectionstatechange", (state) => {
+      console.log("recvTransport", state);
+    });
+  }
+
+  /**
+   * addRemoteConsumer
+   * Добавляет консюмер к пиру
+   */
+  private addRemoteConsumer(remotePeerId: string, consumer: Consumer) {
+    const foundRemotePeer = this.remotePeers.find((p) => p.id === remotePeerId);
+    if (foundRemotePeer) {
+      foundRemotePeer.consumers.push(consumer);
+    }
+  }
+
+  /**
+   * createConsumer создает консюмер на backend и соответствующий на клиенте
+   * запускается на каждом producerId
+   */
+  private async createConsumer(
+    roomId: string,
+    localPeerId: string,
+    remotePeerId: string,
+    producerId: string
+  ) {
+    if (!this.recvTransport) {
+      throw new Error(`createConsumer: recvTransport not found`);
+    }
+
+    const { data } = await apiSend<{
+      id: string;
+      rtpParameters: RtpParameters;
+      kind: KindType;
+      producerId: string;
+    }>("createConsumer", {
+      rtpCapabilities: this.device.rtpCapabilities,
+      producerId,
+      roomId,
+      peerId: localPeerId,
+    });
+
+    const consumer = await this.recvTransport.consume(data);
+
+    this.addRemoteConsumer(remotePeerId, consumer);
+  }
+
+  /**
+   * high-level method
    * createRoom
    * Создание новой комнаты
    */
@@ -238,42 +361,126 @@ class MediasoupClientStore {
         id: string;
         createAt: string;
       }>("createRoom");
-      this.roomId = dataRoom.id;
+
+      console.log("createRoom: 1");
 
       // 2 Запрос Rtp Capabilities
       const routerRtpCapabilities = await this.gerRouterRtpCapabilities(
         dataRoom.id
       );
 
+      console.log("createRoom: 2");
+
       // 3 создаем пира в этой комнате
+      /**
+       * Не гарантирует в будущем, что пир будет именно в этой комнате. Гарант того, что пир в комнате joinRoom
+       */
       const { data: dataPeer } = await apiSend<Peer>("createPeer", {
         roomId: dataRoom.id,
         name: peerName,
       });
-      this.peerId = dataPeer.id;
+
+      console.log("createRoom: 3");
 
       // 4 загружаем Device
       const rtpCapabilities = await this.loadDevice(routerRtpCapabilities);
 
+      console.log("createRoom: 4");
+
       // 5 Сервер добавит пира в комнату (isJoined = true), после чего можно подписываться и передавать Media
-      const peer = await this.joinRoom(
+      const { peer } = await this.joinRoom(
         dataRoom.id,
         dataPeer.id,
         rtpCapabilities
       );
+      this.peerId = peer.id;
+      this.roomId = peer.roomId;
+      console.log("createRoom: 5");
 
+      // Пустой массив
+      this.remotePeers = [];
       await this.createSendTransport();
+
+      console.log("createRoom: 6");
 
       const mediaTracks = this.root.mediaDevices.getMediaTracks();
 
       if (mediaTracks.length) {
-        await Promise.all(
-          mediaTracks.map((track) => this.produceMediaTrack(track))
-        );
+        await Promise.all(mediaTracks.map((track) => this.produce(track)));
       }
+      console.log("createRoom: 7");
     } catch (err) {
       printError(err);
     }
+  }
+
+  /**
+   * high-level method
+   * enterRoom
+   * Подключение к существующей комнате
+   */
+  async enterRoom(roomId: string, peerName: string) {
+    try {
+      // 1 Запрос Rtp Capabilities
+      const routerRtpCapabilities = await this.gerRouterRtpCapabilities(roomId);
+      console.log("enterRoom", 1);
+
+      // 2 создаем пира
+      /**
+       * Не гарантирует в будущем, что пир будет именно в этой комнате. Гарант того, что пир в комнате joinRoom
+       */
+      const { data: dataPeer } = await apiSend<Peer>("createPeer", {
+        roomId: roomId,
+        name: peerName,
+      });
+
+      console.log("enterRoom", 2);
+
+      if (!dataPeer.id || !dataPeer.roomId || !dataPeer.name) {
+        throw new Error("enterRoom failed!");
+      }
+
+      // 3 загружаем Device
+      const rtpCapabilities = await this.loadDevice(routerRtpCapabilities);
+
+      console.log("enterRoom", 3);
+
+      // 4 Сервер успешно добавил пира и вернул участников комнаты
+      const { remotePeers, peer } = await this.joinRoom(
+        roomId,
+        dataPeer.id,
+        rtpCapabilities
+      );
+
+      runInAction(() => {
+        this.isJoined = true;
+        this.peerId = peer.id;
+        this.roomId = peer.roomId;
+        this.peerName = peer.name;
+        this.remotePeers = remotePeers.map((p) => ({ ...p, consumers: [] }));
+      });
+
+      console.log("enterRoom", 4);
+
+      // 5 Создание recvtransport
+      await this.createRecvTransport();
+
+      console.log("enterRoom", 5);
+
+      // 6 Подписка на потоки
+      await this.consume();
+      console.log("enterRoom", 6, "this.remotePeers: ", this.remotePeers);
+    } catch (err) {
+      this.clear();
+      printError(err);
+    }
+  }
+
+  private clear() {
+    this.isJoined = false;
+    this.peerId = undefined;
+    this.peerName = undefined;
+    this.roomId = undefined;
   }
 }
 export default MediasoupClientStore;
