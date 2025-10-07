@@ -7,7 +7,7 @@ type PropsType = Partial<Omit<ModalProps, "onSucces">> & {
   onSucces: (peerName: string) => void;
 };
 
-const CreateRoomModal: FC<PropsType> = ({
+const EnterRoomModal: FC<PropsType> = ({
   onOpenChange,
   onSucces,
   disabledSuccesButton = false,
@@ -15,7 +15,7 @@ const CreateRoomModal: FC<PropsType> = ({
   const [fields, setValue] = useInputsState({ peerName: "" });
   return (
     <Modal
-      title="Создание новой комнаты"
+      title="Подключиться к комнате"
       onOpenChange={onOpenChange!}
       open={true}
       onSucces={() => onSucces(fields["peerName"])}
@@ -36,4 +36,4 @@ const CreateRoomModal: FC<PropsType> = ({
   );
 };
 
-export default CreateRoomModal;
+export default EnterRoomModal;

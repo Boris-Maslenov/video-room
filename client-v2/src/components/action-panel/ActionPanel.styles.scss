@@ -1,0 +1,32 @@
+.ActionsPanel {
+  flex: 0 0 auto;
+  height: 80px;
+  // border: 1px solid #cdcdcd;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 0 15px;
+  & > * {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+  }
+}
+
+.IconButton {
+  background-color: #3c2647;
+  color: white;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  cursor: pointer;
+  &:hover {
+    background-color: #452c52;
+  }
+
+  &.color-red {
+    color: rgb(237, 52, 52);
+  }
+}

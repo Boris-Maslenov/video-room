@@ -9,6 +9,7 @@ export interface ModalProps {
   onSucces: () => void;
   open: boolean;
   children?: ReactNode;
+  disabledSuccesButton: boolean;
 }
 
 const Modal: FC<ModalProps> = ({
@@ -17,6 +18,7 @@ const Modal: FC<ModalProps> = ({
   title,
   children,
   onSucces,
+  disabledSuccesButton = false,
 }) => {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -28,7 +30,9 @@ const Modal: FC<ModalProps> = ({
           <Button onClick={() => onOpenChange(false)} variant="outline">
             Отменить
           </Button>
-          <Button onClick={onSucces}>Создать</Button>
+          <Button onClick={onSucces} disabled={disabledSuccesButton}>
+            Подтвердить
+          </Button>
         </div>
         <Dialog.Close className="DialogClose">x</Dialog.Close>
       </Dialog.Content>

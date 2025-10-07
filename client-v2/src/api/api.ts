@@ -1,15 +1,9 @@
-import { io, type Socket } from "socket.io-client";
-import {
-  SocketSendType,
-  ErrorSocketType,
-  isErrorSocketType,
-  ApiResult,
-} from "./api.types";
+import { type Socket } from "socket.io-client";
+import { ErrorSocketType, isErrorSocketType, ApiResult } from "./api.types";
 
-const WS_URL = "http://127.0.0.1:3001";
-export const socket = io(WS_URL);
+export const WS_URL = "http://127.0.0.1:3001";
 
-class ApiError extends Error {
+export class ApiError extends Error {
   code?: string | number;
   details?: unknown;
   message: string;
@@ -20,7 +14,7 @@ class ApiError extends Error {
   }
 }
 
-const socketPromise = <T>(socket: Socket) => {
+export const socketPromise = <T>(socket: Socket) => {
   return (type: string, data = {}): Promise<ApiResult<T>> =>
     new Promise((resolve, reject) => {
       socket.emit(type, data, (res: ApiResult<T> | ErrorSocketType) =>
@@ -28,5 +22,3 @@ const socketPromise = <T>(socket: Socket) => {
       );
     });
 };
-
-export const apiSend: SocketSendType = socketPromise(socket);

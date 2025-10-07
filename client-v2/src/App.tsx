@@ -1,13 +1,13 @@
 import "./App.scss";
-import Dashboard from "./components/dashboard/Dashboard";
 import { StoresProvider } from "./context/StoresProvider";
+import RootLayout from "./components/rootLayout/RootLayout";
 // import "@radix-ui/themes/styles.css";
 
 const App = () => {
-  console.log("app render");
+  console.log("App render");
   return (
     <StoresProvider>
-      <Dashboard />
+      <RootLayout />
     </StoresProvider>
   );
 };

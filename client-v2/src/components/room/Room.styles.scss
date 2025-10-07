@@ -1,0 +1,21 @@
+.Room {
+  display: flex;
+  flex-direction: column;
+}
+
+.MediaCanvas {
+  flex: 1 0 0%;
+  width: 100%;
+  // border: 1px solid #cdcdcd;
+  padding: 20px;
+  min-height: 0;
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+
+  display: grid;
+  align-content: space-evenly;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 0.5fr));
+  gap: 10px;
+  margin-block: auto;
+  grid-auto-rows: min-content;
+}

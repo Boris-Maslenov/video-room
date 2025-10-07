@@ -3,56 +3,84 @@ import { observer } from "mobx-react-lite";
 import Button from "../shared/button/Button";
 import "./Dashboard.scss";
 import {
-  useDevicesStore,
   useMediaSoupStore,
+  useSocketStore,
 } from "../../context/StoresProvider";
 import CreateRoomModal from "../modals/CreateRoomModal";
+import EnterRoomModal from "../modals/EnterRoomModal";
+import { setQueryParams } from "../../utils/setQueryParams";
+import { ROOM_QUERY_KEY } from "../../config";
 
-const Dashboard: FC = () => {
-  console.log("render Dashboard");
+const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
+  console.log("render Dashboard", roomId);
 
-  const devicesStore = useDevicesStore();
   const mediaStore = useMediaSoupStore();
-  const [isCreateRoomOpen, setCreateRoomOpen] = useState(false);
+  const socketStore = useSocketStore();
+  const [modal, setModalOpen] = useState<
+    "CreateRoomModal" | "EnterRoomModal" | null
+  >(null);
 
-  const videoTrack = devicesStore.videoTrack;
-  const audioTrack = devicesStore.audioTrack;
+  const status = socketStore.networkStatus;
+
+  console.log(status);
+
+  const [disabledModalBtn, setDisabledModalBtn] = useState(false);
+
+  const createRoomHandle = async (peerName: string) => {
+    setDisabledModalBtn(true);
+    await mediaStore.createRoom(peerName);
+    setQueryParams(ROOM_QUERY_KEY, "0");
+    setModalOpen(null);
+  };
+
+  const enterRoomHandle = async (peerName: string) => {
+    if (roomId) {
+      setDisabledModalBtn(true);
+      await mediaStore.enterRoom(roomId, peerName);
+      setModalOpen(null);
+    }
+  };
 
   useEffect(() => {
-    const init = async () => {
-      await devicesStore.init();
-      await devicesStore.startMediaTracks();
-    };
-    init();
-  }, []);
-
-  const createRoomHandle = (peerName: string) => {
-    mediaStore.createRoom(peerName);
-  };
+    if (!modal) {
+      setDisabledModalBtn(false);
+    }
+  }, [modal]);
 
   return (
     <div className="Dashboard">
       <div className="Dashboard__actions">
-        <Button size="large" onClick={() => setCreateRoomOpen(true)}>
+        <Button
+          size="large"
+          onClick={() => setModalOpen("CreateRoomModal")}
+          disabled={!!roomId || status !== "online"}
+        >
           Создать комнату
         </Button>
         <Button
           size="large"
-          onClick={() => {
-            console.log("Подключиться");
-            mediaStore.enterRoom("0", "Boris");
-          }}
+          onClick={() => setModalOpen("EnterRoomModal")}
+          disabled={!roomId || status !== "online"}
         >
           Подключиться
         </Button>
-        {isCreateRoomOpen && (
-          <CreateRoomModal
-            open={isCreateRoomOpen}
-            onOpenChange={setCreateRoomOpen}
-            onSucces={createRoomHandle}
-          />
-        )}
       </div>
+      {modal === "CreateRoomModal" && (
+        <CreateRoomModal
+          open={true}
+          onOpenChange={() => setModalOpen(null)}
+          onSucces={createRoomHandle}
+          disabledSuccesButton={disabledModalBtn}
+        />
+      )}
+      {modal === "EnterRoomModal" && (
+        <EnterRoomModal
+          open={true}
+          onOpenChange={() => setModalOpen(null)}
+          onSucces={enterRoomHandle}
+          disabledSuccesButton={disabledModalBtn}
+        />
+      )}
     </div>
   );
 };

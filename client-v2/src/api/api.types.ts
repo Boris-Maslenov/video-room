@@ -1,3 +1,5 @@
+import { RemotePeer } from "../stores/MediasoupClientStore";
+
 export type SocketSendType = <T>(
   type: string,
   data?: object
@@ -24,3 +26,14 @@ export const isErrorSocketType = (a: any): a is ErrorSocketType => {
 };
 
 export type KindType = "audio" | "video";
+
+export type ServerEvents = {
+  [K in keyof ParamsServerEvents]: (...args: ParamsServerEvents[K]) => void;
+};
+
+export type ParamsServerEvents = {
+  "peer:closed": [string];
+  "peer:ready": [RemotePeer];
+};
+
+export type ClientEvents = {};

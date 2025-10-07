@@ -24,19 +24,25 @@ class MediaDevicesStore {
     makeAutoObservable(this, {
       audioTrack: observable.ref,
       videoTrack: observable.ref,
+      stream: observable.ref,
+      // ref / shallow / deep / struct
     });
   }
 
   toggleMic(on: boolean) {
     // мягкий mute
-    this.micOn = on;
-    if (this.audioTrack) this.audioTrack.enabled = on;
+    if (this.audioTrack) {
+      this.micOn = on;
+      this.audioTrack.enabled = on;
+    }
   }
 
   toggleCam(on: boolean) {
     // мягкий mute
-    this.camOn = on;
-    if (this.videoTrack) this.videoTrack.enabled = on;
+    if (this.videoTrack) {
+      this.camOn = on;
+      this.videoTrack.enabled = on;
+    }
   }
 
   stopAllTracks(stream: MediaStream | null) {
@@ -44,32 +50,41 @@ class MediaDevicesStore {
       stream.getTracks().forEach((t) => t.stop());
     }
   }
+  /**
+   * init
+   * Запрашивает разрещение на камеру и микрофон, определяет список медиа устройств,
+   * определяет id камеры и микрофона для старта.
+   */
 
   async init() {
     try {
-      let stream: MediaStream | null =
-        await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: true,
-        });
+      const initMediaDevices = await navigator.mediaDevices.enumerateDevices();
+      const hasAudio = initMediaDevices.some((d) => d.kind === "audioinput");
+      const hasVideo = initMediaDevices.some((d) => d.kind === "videoinput");
 
+      let initStream: MediaStream | null =
+        await navigator.mediaDevices.getUserMedia({
+          audio: hasAudio,
+          video: hasVideo,
+        });
       const allMediaDevices = await navigator.mediaDevices.enumerateDevices();
       runInAction(() => {
+        /**
+         * Выбор по умолчанию
+         */
         this.allMediaDevices = allMediaDevices;
         this.mics = this.allMediaDevices.filter((d) => d.kind === "audioinput");
         this.cams = this.allMediaDevices.filter((d) => d.kind === "videoinput");
-        /**
-         * TODO: this.stream!.getAudioTracks()[0].getSettings().deviceId;
-         * Настроить выбор на мобильных устройствах
-         */
-        this.selectedMic = "default";
-        this.selectedCam =
-          stream!.getVideoTracks()[0].getSettings().deviceId ?? null;
+        this.selectedMic = hasAudio ? "default" : null;
+        this.selectedCam = hasVideo
+          ? initStream?.getVideoTracks()[0].getSettings().deviceId ?? null
+          : null;
       });
-      this.stopAllTracks(stream);
-      stream = null;
+
+      this.stopAllTracks(initStream);
+      initStream = null;
     } catch (err) {
-      console.warn(err);
+      console.error(err);
     }
   }
 
@@ -109,6 +124,9 @@ class MediaDevicesStore {
     this.stopAllTracks(this.stream);
     this.stream = null;
 
+    /**
+     * Стрим на основе выбранных устройств (при смене устройства подменять трек)
+     */
     const stream =
       needAudio || needVideo
         ? await navigator.mediaDevices.getUserMedia({
@@ -148,7 +166,7 @@ class MediaDevicesStore {
       this.videoTrack = track;
       mediaTracks.push(track);
     }
-
+    console.log("this.stream", this.stream);
     return mediaTracks;
   }
 

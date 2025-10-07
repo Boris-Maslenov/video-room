@@ -1,0 +1,27 @@
+.Participant {
+  position: relative;
+  background: #3f2244;
+  border-radius: 12px;
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+  // aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  & .ParticipantInfo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 25px;
+    font-size: 20px;
+    background-color: green;
+    padding: 5px 45px;
+    border-radius: 20px;
+  }
+}
