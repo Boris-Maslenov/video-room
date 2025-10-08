@@ -1,40 +1,34 @@
 import "./Modal.scss";
 import { type FC, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import Button from "../button/Button";
+import { CloseIcon } from "../../icons";
 
 export interface ModalProps {
-  title: string;
-  onOpenChange: (open: boolean) => void;
+  title?: string;
+  onOpen: (open: boolean) => void;
   onSucces: () => void;
   open: boolean;
   children?: ReactNode;
-  disabledSuccesButton: boolean;
+  description?: string;
 }
 
 const Modal: FC<ModalProps> = ({
-  onOpenChange,
+  onOpen,
   open,
   title,
   children,
-  onSucces,
-  disabledSuccesButton = false,
+  description = "",
 }) => {
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={onOpen}>
       <Dialog.Overlay className="DialogOverlay" />
       <Dialog.Content className="DialogContent">
         <Dialog.Title className="DialogTitle">{title}</Dialog.Title>
+        <Dialog.Description>{description}</Dialog.Description>
         {children}
-        <div className="DialogActions">
-          <Button onClick={() => onOpenChange(false)} variant="outline">
-            Отменить
-          </Button>
-          <Button onClick={onSucces} disabled={disabledSuccesButton}>
-            Подтвердить
-          </Button>
-        </div>
-        <Dialog.Close className="DialogClose">x</Dialog.Close>
+        <Dialog.Close className="DialogClose">
+          <CloseIcon width="18px" height="18px" />
+        </Dialog.Close>
       </Dialog.Content>
     </Dialog.Root>
   );

@@ -68,7 +68,7 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
       {modal === "CreateRoomModal" && (
         <CreateRoomModal
           open={true}
-          onOpenChange={() => setModalOpen(null)}
+          onOpen={() => setModalOpen(null)}
           onSucces={createRoomHandle}
           disabledSuccesButton={disabledModalBtn}
         />
@@ -76,7 +76,7 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
       {modal === "EnterRoomModal" && (
         <EnterRoomModal
           open={true}
-          onOpenChange={() => setModalOpen(null)}
+          onOpen={() => setModalOpen(null)}
           onSucces={enterRoomHandle}
           disabledSuccesButton={disabledModalBtn}
         />

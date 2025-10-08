@@ -2,13 +2,15 @@ import { FC } from "react";
 import Modal, { ModalProps } from "../shared/modal/Modal";
 import Fieldset from "../shared/fieldset/Fieldset";
 import useInputsState from "../../hooks/useInputsState";
+import DefaultDialogActions from "../shared/modal/DefaultDialogActions";
 
-type PropsType = Partial<Omit<ModalProps, "onSucces">> & {
+type PropsType = Omit<ModalProps, "onSucces"> & {
   onSucces: (peerName: string) => void;
+  disabledSuccesButton?: boolean;
 };
 
 const EnterRoomModal: FC<PropsType> = ({
-  onOpenChange,
+  onOpen,
   onSucces,
   disabledSuccesButton = false,
 }) => {
@@ -16,12 +18,9 @@ const EnterRoomModal: FC<PropsType> = ({
   return (
     <Modal
       title="Подключиться к комнате"
-      onOpenChange={onOpenChange!}
+      onOpen={onOpen}
       open={true}
       onSucces={() => onSucces(fields["peerName"])}
-      disabledSuccesButton={
-        (fields["peerName"] as string).trim().length < 3 || disabledSuccesButton
-      }
     >
       <div className="fields-container">
         <Fieldset
@@ -32,6 +31,16 @@ const EnterRoomModal: FC<PropsType> = ({
           }}
         />
       </div>
+      <DefaultDialogActions
+        onOpen={onOpen}
+        onSucces={() => {
+          onSucces(fields["peerName"]);
+        }}
+        disabledSuccesButton={
+          (fields["peerName"] as string).trim().length < 3 ||
+          disabledSuccesButton
+        }
+      />
     </Modal>
   );
 };

@@ -31,13 +31,12 @@ const RootLayout: FC = () => {
       {errorStore.errorsStack.length > 0 && (
         <Modal
           title="Ошибка"
-          onOpenChange={(open) => {
+          onOpen={(open) => {
             console.log(open);
             errorStore.popError();
           }}
           open={errorStore.errorsStack.length > 0}
           onSucces={() => {}}
-          disabledSuccesButton={false}
         >
           {errorStore.errorsStack.at(-1)?.message}
         </Modal>
