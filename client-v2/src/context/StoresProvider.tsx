@@ -43,3 +43,11 @@ export const useSocketStore = () => {
   }
   return root.network;
 };
+
+export const useErrorStore = () => {
+  const root = useContext(Ctx);
+  if (!root) {
+    throw new Error("Root store not found!");
+  }
+  return root.error;
+};

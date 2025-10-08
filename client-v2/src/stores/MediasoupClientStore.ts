@@ -173,9 +173,10 @@ class MediasoupClientStore {
             ...this.defaultRoomData,
           });
           callback();
-        } catch (error) {
-          if (error instanceof Error) {
-            errback(error);
+        } catch (err) {
+          if (err instanceof Error) {
+            errback(err);
+            this.root.error.setError(err);
           }
         }
       }
@@ -198,6 +199,7 @@ class MediasoupClientStore {
         } catch (error) {
           if (error instanceof Error) {
             errback(error);
+            this.root.error.setError(error);
           }
         }
       }
@@ -305,8 +307,8 @@ class MediasoupClientStore {
           callback();
         } catch (error) {
           if (error instanceof Error) {
-            console.log("err", error);
             errback(error);
+            this.root.error.setError(error);
           }
         }
       }
@@ -437,9 +439,10 @@ class MediasoupClientStore {
       }
       console.log("createRoom: final");
     } catch (err) {
-      console.log("createRoom catch");
       this.cleanupSession();
-      printError(err);
+      if (err instanceof Error) {
+        this.root.error.setError(err);
+      }
     }
   }
 
@@ -504,7 +507,9 @@ class MediasoupClientStore {
     } catch (err) {
       console.log("enter room catch");
       this.cleanupSession();
-      printError(err);
+      if (err instanceof Error) {
+        this.root.error.setError(err);
+      }
     }
   }
 

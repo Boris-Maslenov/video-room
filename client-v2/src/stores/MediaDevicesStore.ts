@@ -84,7 +84,7 @@ class MediaDevicesStore {
       this.stopAllTracks(initStream);
       initStream = null;
     } catch (err) {
-      console.error(err);
+      throw err;
     }
   }
 
