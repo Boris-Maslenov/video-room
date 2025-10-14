@@ -42,11 +42,9 @@ const Room = () => {
         break;
       }
       case "screen": {
-        console.log("screen");
         break;
       }
       case "exit": {
-        console.log("exit");
         mediaSoupStore.endCall();
         break;
       }

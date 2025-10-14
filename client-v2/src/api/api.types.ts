@@ -32,8 +32,10 @@ export type ServerEvents = {
 };
 
 export type ParamsServerEvents = {
-  "peer:closed": [string];
   "peer:ready": [RemotePeer];
+  "peer:closed": [string];
+  "peer:camOn": [string, string];
+  "peer:camOf": [string, string];
 };
 
 export type ClientEvents = {};

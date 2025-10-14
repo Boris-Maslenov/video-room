@@ -1,6 +1,7 @@
 import { type Socket } from "socket.io-client";
 import { ErrorSocketType, isErrorSocketType, ApiResult } from "./api.types";
 
+// export const WS_URL = "http://192.168.0.104:3001";
 export const WS_URL = "http://127.0.0.1:3001";
 
 export class ApiError extends Error {

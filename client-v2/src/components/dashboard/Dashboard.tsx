@@ -5,6 +5,7 @@ import "./Dashboard.scss";
 import {
   useMediaSoupStore,
   useSocketStore,
+  useDevicesStore,
 } from "../../context/StoresProvider";
 import CreateRoomModal from "../modals/CreateRoomModal";
 import EnterRoomModal from "../modals/EnterRoomModal";
@@ -12,8 +13,7 @@ import { setQueryParams } from "../../utils/setQueryParams";
 import { ROOM_QUERY_KEY } from "../../config";
 
 const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
-  console.log("render Dashboard", roomId);
-
+  const devicesStore = useDevicesStore();
   const mediaStore = useMediaSoupStore();
   const socketStore = useSocketStore();
   const [modal, setModalOpen] = useState<
@@ -21,8 +21,6 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
   >(null);
 
   const status = socketStore.networkStatus;
-
-  console.log(status);
 
   const [disabledModalBtn, setDisabledModalBtn] = useState(false);
 
@@ -59,7 +57,13 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
         </Button>
         <Button
           size="large"
-          onClick={() => setModalOpen("EnterRoomModal")}
+          onClick={() => {
+            if (!devicesStore.allMediaDevices.length) {
+              devicesStore.init();
+            }
+
+            setModalOpen("EnterRoomModal");
+          }}
           disabled={!roomId || status !== "online"}
         >
           Подключиться
@@ -79,6 +83,9 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
           onOpen={() => setModalOpen(null)}
           onSucces={enterRoomHandle}
           disabledSuccesButton={disabledModalBtn}
+          mediaDevices={devicesStore.allMediaDevices}
+          loading={devicesStore.isMediaDevicesLoading}
+          selectedMic={devicesStore.selectedMic ?? ""}
         />
       )}
     </div>

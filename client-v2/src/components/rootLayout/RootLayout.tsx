@@ -21,8 +21,12 @@ const RootLayout: FC = () => {
   useEffect(() => {
     socketStore.addListener("peer:closed", mediaStore.deleteRemotePeer);
     socketStore.addListener("peer:ready", mediaStore.addRemotePeer);
+    socketStore.addListener(
+      "peer:camOf",
+      mediaStore.deleteConsumerFromRemotePeer
+    );
+    socketStore.addListener("peer:camOn", mediaStore.addConsumerToRemotePeer);
   }, []);
-  console.log(errorStore.errorsStack);
 
   return (
     <>

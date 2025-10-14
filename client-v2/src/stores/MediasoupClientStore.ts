@@ -27,10 +27,6 @@ export type Peer = {
 
 export type ProducerKey = "audioProducer" | "videoProducer";
 
-const printError = (err: unknown) => {
-  console.error(err);
-};
-
 export type NetworkPeerStatus = "offline" | "connecting" | "online";
 
 export type RemotePeer = {
@@ -96,16 +92,6 @@ class MediasoupClientStore {
     }
 
     this[producersMap[kind]] = produer;
-  }
-
-  private deleteLocalProducer(produer: Producer) {
-    const kind = produer.kind as KindType;
-    let existingProducer = Boolean(this[producersMap[kind]]);
-
-    if (existingProducer) {
-      (this[producersMap[kind]] as Producer).close();
-      this[producersMap[kind]] = null;
-    }
   }
 
   private get defaultRoomData() {
@@ -227,6 +213,7 @@ class MediasoupClientStore {
       const producer = await this.sendTransport.produce({ track });
       this.setLocalProducer(producer);
     } catch (err) {
+      console.log("produce error !!!");
       if (err instanceof Error) {
         throw Error;
       }
@@ -235,7 +222,7 @@ class MediasoupClientStore {
 
   /**
    * consume
-   * Создает консюмеры. Подписка на медиа потоки других участников
+   * Создает консюмеры. Подписка на медиа потоки других участников(remotePeers)
    */
   private async consume(remotePeerIds: string[]) {
     const remoteProducersData = this.remotePeers
@@ -251,7 +238,6 @@ class MediasoupClientStore {
       }, []);
 
     const { roomId, peerId } = this.defaultRoomData;
-    console.log("remoteProducersData", remoteProducersData);
 
     return Promise.all(
       remoteProducersData.map((p) =>
@@ -299,7 +285,6 @@ class MediasoupClientStore {
       "connect",
       async ({ dtlsParameters }, callback, errback) => {
         try {
-          console.log("recvTransport connect");
           await this.root.network.apiSend()("connectRecvTransport", {
             dtlsParameters,
             ...this.defaultRoomData,
@@ -452,9 +437,7 @@ class MediasoupClientStore {
    * Подключение к существующей комнате
    */
   async enterRoom(roomId: string, peerName: string) {
-    console.log("enterRoom", "roomId: ", roomId, "peerName: ", peerName);
     try {
-      await this.root.mediaDevices.init();
       await this.root.mediaDevices.startMediaTracks();
       // 1 Запрос Rtp Capabilities
       const routerRtpCapabilities = await this.gerRouterRtpCapabilities(roomId);
@@ -492,6 +475,8 @@ class MediasoupClientStore {
         }));
       });
 
+      console.log(" this.remotePeers", this.remotePeers);
+
       // 5 Создание recvtransport
       await this.createRecvTransport();
       // 6 Подписка на потоки
@@ -499,13 +484,14 @@ class MediasoupClientStore {
       // 7 отправка потоков
       await this.createSendTransport();
       const mediaTracks = this.root.mediaDevices.getMediaTracks();
+      console.log("enterRoom mediaTracks: ", mediaTracks);
       if (mediaTracks.length) {
         await Promise.all(mediaTracks.map((track) => this.produce(track)));
       }
       await this.root.network.apiSend()("peerConnected", this.defaultRoomData);
-      console.log("enterRoom final");
+      console.log("enterRoom final", this.remotePeers);
     } catch (err) {
-      console.log("enter room catch");
+      console.log("qwerwerwerwerwerwer error", err);
       this.cleanupSession();
       if (err instanceof Error) {
         this.root.error.setError(err);
@@ -514,15 +500,12 @@ class MediasoupClientStore {
   }
 
   deleteRemotePeer(peerId: string) {
-    console.log("removeRemotePeer: ", peerId, this);
     const foundRemotePeer = this.remotePeers.find((p) => p.id === peerId);
-
     if (foundRemotePeer) {
       foundRemotePeer.consumers.forEach((c) => {
         c.close();
       });
     }
-
     this.remotePeers = this.remotePeers.filter((p) => p.id !== peerId);
   }
 
@@ -538,14 +521,87 @@ class MediasoupClientStore {
 
     this.remotePeers = [...this.remotePeers, clientRemotePeer];
     await this.consume([clientRemotePeer.id]);
-
-    console.log("remotePeers после консюма", this.remotePeers);
   }
 
   async endCall() {
-    console.log("endCall");
     await this.root.network.apiSend()("endCall", this.defaultRoomData);
     this.cleanupSession();
+  }
+
+  camOf() {
+    if (this.videoProducer) {
+      this.videoProducer.close();
+      this.videoProducer = null;
+    }
+
+    return this.root.network.apiSend()("camOf", this.defaultRoomData);
+  }
+
+  async camOn() {
+    if (this.videoProducer) {
+      this.videoProducer.close();
+      this.videoProducer = null;
+    }
+
+    if (!this.sendTransport) {
+      await this.createSendTransport();
+    }
+
+    const track = this.root.mediaDevices
+      .getMediaTracks()
+      .find((t) => t.kind === "video");
+
+    if (!track) {
+      throw new Error("camOn: video track not found");
+    }
+
+    await this.produce(track);
+    await this.root.network.apiSend()("camOn", this.defaultRoomData);
+  }
+
+  /**
+   * Удаленный абонент выключил продюсер, делаем отписку соответствующего консюмера
+   */
+  deleteConsumerFromRemotePeer(peerId: string, produserId: string) {
+    this.remotePeers = this.remotePeers.map((p) => {
+      if (p.id === peerId) {
+        const foundConsumer = p.consumers.find(
+          (c) => c.producerId === produserId
+        );
+
+        const track = foundConsumer?.track;
+
+        if (track) {
+          p.mediaStream.removeTrack(track);
+        }
+
+        foundConsumer?.close();
+        p.consumers = p.consumers.filter((c) => c.producerId !== produserId);
+        p.producerIds = p.producerIds.filter((p) => p !== produserId);
+        return { ...p };
+      }
+      return p;
+    });
+  }
+
+  /**
+   * Участник комнаты включил продюсер, делаем подписку
+   */
+  async addConsumerToRemotePeer(remotePeerId: string, producerId: string) {
+    try {
+      if (!this.roomId || !this.peerId) {
+        throw new Error("addConsumerToRemotePeer error");
+      }
+
+      await this.createConsumer(
+        this.roomId,
+        this.peerId,
+        remotePeerId,
+        producerId
+      );
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   cleanupSession() {
@@ -553,7 +609,6 @@ class MediasoupClientStore {
     this.peerId = undefined;
     this.peerName = undefined;
     this.roomId = undefined;
-    this.root.mediaDevices.stopAllTracks(this.root.mediaDevices.stream);
     this.audioProducer?.close();
     this.videoProducer?.close();
     this.remotePeers
@@ -562,6 +617,7 @@ class MediasoupClientStore {
     this.remotePeers = [];
     this.recvTransport?.close();
     this.sendTransport?.close();
+    this.root.mediaDevices.cleanupSession();
   }
 }
 export default MediasoupClientStore;

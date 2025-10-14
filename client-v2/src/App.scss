@@ -36,3 +36,15 @@ body {
   display: grid;
   height: 100%;
 }
+
+.flex-center-right {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+}
+
+.flex-center-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

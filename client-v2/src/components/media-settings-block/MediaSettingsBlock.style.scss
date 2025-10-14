@@ -1,0 +1,51 @@
+.MediaSettings {
+  background-color: #e2e2e2;
+  padding: 15px 10px;
+  border-radius: 8px;
+  position: relative;
+}
+
+.MediaSettingsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.MediaSettingsLoader {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #9e9e9e;
+  left: 0;
+  top: 0;
+  z-index: 10;
+  border-radius: inherit;
+  opacity: 0.9;
+}
+
+.Col {
+  flex: 0 0 auto;
+  max-width: 100%;
+  &.Col-20 {
+    width: 20%;
+  }
+  &.Col-30 {
+    width: 30%;
+  }
+  &.Col-40 {
+    width: 40%;
+  }
+  &.Col-50 {
+    width: 50%;
+  }
+  &.Col-60 {
+    width: 60%;
+  }
+  &.Col-70 {
+    width: 70%;
+  }
+  &.Col-80 {
+    width: 80%;
+  }
+}

@@ -36,14 +36,19 @@ class SocketStore {
     this.initial = true;
     this.socket.on("peer:closed", this.handlePeerClosed);
     this.socket.on("peer:ready", this.handlePeerReady);
+    this.socket.on("peer:camOf", this.handleCamOf);
+    this.socket.on("peer:camOn", this.handleCamOn);
 
     this.socket.on("connect", () => {
       this.setNetStatus("online");
     });
-    this.socket.on("connect_error", (e) => {
+    this.socket.on("connect_error", () => {
+      console.log("connect_error");
       this.setNetStatus("offline");
+      this.root.mediaSoupClient.cleanupSession();
     });
-    this.socket.on("disconnect", (e) => {
+    this.socket.on("disconnect", () => {
+      console.log("disconnect");
       this.setNetStatus("offline");
       this.root.mediaSoupClient.cleanupSession();
     });
@@ -61,12 +66,18 @@ class SocketStore {
   }
 
   private handlePeerReady(...args: ParamsServerEvents["peer:ready"]) {
-    console.log("handlePeerReady", args);
     this.emit("peer:ready", ...args);
   }
 
+  private handleCamOf(...args: ParamsServerEvents["peer:camOf"]) {
+    this.emit("peer:camOf", ...args);
+  }
+
+  private handleCamOn(...args: ParamsServerEvents["peer:camOn"]) {
+    this.emit("peer:camOn", ...args);
+  }
+
   dispose() {
-    console.log("dispose");
     if (!this.initial) return;
     this.initial = false;
     this.socket.off("peer:closed", this.handlePeerClosed);

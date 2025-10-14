@@ -3,10 +3,14 @@ import Modal, { ModalProps } from "../shared/modal/Modal";
 import Fieldset from "../shared/fieldset/Fieldset";
 import useInputsState from "../../hooks/useInputsState";
 import DefaultDialogActions from "../shared/modal/DefaultDialogActions";
+import MediaSettingsBlock from "../media-settings-block/MediaSettingsBlock";
 
 type PropsType = Omit<ModalProps, "onSucces"> & {
   onSucces: (peerName: string) => void;
   disabledSuccesButton?: boolean;
+  mediaDevices: MediaDeviceInfo[];
+  loading: boolean;
+  selectedMic: string;
 };
 
 const EnterRoomModal: FC<PropsType> = ({
@@ -22,6 +26,7 @@ const EnterRoomModal: FC<PropsType> = ({
       open={true}
       onSucces={() => onSucces(fields["peerName"])}
     >
+      <MediaSettingsBlock />
       <div className="fields-container">
         <Fieldset
           inputProps={{
