@@ -10,6 +10,8 @@ import type {
   RtpParameters,
 } from "mediasoup-client/types";
 import { KindType } from "../api/api.types";
+import { safeClose, safeStop } from "../utils/mediaUtils";
+import { SCREEN_PRODUCER_OPTIONS } from "../config";
 
 export type MediaDevice = {
   deviceId: string;
@@ -29,11 +31,20 @@ export type ProducerKey = "audioProducer" | "videoProducer";
 
 export type NetworkPeerStatus = "offline" | "connecting" | "online";
 
+export type Source = "audio" | "video" | "screen";
+
+export type RemoteProducerData = {
+  producerId: string;
+  source: Source;
+};
+
+export type AppProducer = Producer<{ source: Source }>;
+
 export type RemotePeer = {
   id: string;
   roomId: string;
   name: string;
-  producerIds: string[];
+  producersData: RemoteProducerData[];
   socketId: string;
   isJoined: boolean;
   status: NetworkPeerStatus;
@@ -47,6 +58,7 @@ export type ClientRemotePeer = RemotePeer & {
 const producersMap = {
   audio: "audioProducer",
   video: "videoProducer",
+  screen: "screenProducer",
 } as Record<KindType, ProducerKey>;
 
 class MediasoupClientStore {
@@ -55,13 +67,20 @@ class MediasoupClientStore {
   peerName?: string;
   roomId?: string;
   isJoined: boolean = false;
-  localMediaStream: MediaStream | null = null;
   device: Device;
+
   sendTransport: Transport | null = null;
   recvTransport: Transport | null = null;
-  videoProducer: Producer | null = null;
-  audioProducer: Producer | null = null;
+
+  videoProducer: AppProducer | null = null;
+  audioProducer: AppProducer | null = null;
+  screenProducer: AppProducer | null = null;
+
   remotePeers: ClientRemotePeer[] = [];
+
+  remoteScreenConsumer: Consumer | null = null;
+  remoteScreenStream: MediaStream | null = null;
+  isRemoteScreenActive: boolean = false;
 
   constructor(root: RootStore) {
     this.root = root;
@@ -74,7 +93,7 @@ class MediasoupClientStore {
     );
   }
 
-  private setLocalProducer(produer: Producer) {
+  private setLocalProducer(produer: AppProducer) {
     // TODO: навесить события на продюсер
     // producer.on('transportclose', ...) — транспорт умер → действуем (чистим состояние).
     // producer.on('trackended', ...) — исходный MediaStreamTrack закончился (пользователь «Stop sharing», камера пропала) → действуем (закрываем продюсер).
@@ -87,7 +106,7 @@ class MediasoupClientStore {
     let existingProducer = this[producersMap[kind]];
 
     if (existingProducer) {
-      (this[producersMap[kind]] as Producer).close();
+      (this[producersMap[kind]] as AppProducer).close();
       this[producersMap[kind]] = null;
     }
 
@@ -178,6 +197,7 @@ class MediasoupClientStore {
             {
               kind,
               rtpParameters,
+              appData,
               ...this.defaultRoomData,
             }
           );
@@ -201,19 +221,26 @@ class MediasoupClientStore {
   }
 
   /**
-   * produce
+   * createProducer
    * Создает продюсер. Отправка медиа потока в комнату
    */
-  private async produce(track: MediaStreamTrack) {
+  private async createProducer(
+    track: MediaStreamTrack,
+    isScreenShare: boolean = false
+  ) {
     if (!this.sendTransport) {
       throw new Error("sendTransport not found");
     }
 
     try {
-      const producer = await this.sendTransport.produce({ track });
+      const producer = await this.sendTransport.produce({
+        track,
+        appData: { source: isScreenShare ? "screen" : (track.kind as Source) },
+        ...(isScreenShare ? SCREEN_PRODUCER_OPTIONS : null),
+      });
+
       this.setLocalProducer(producer);
     } catch (err) {
-      console.log("produce error !!!");
       if (err instanceof Error) {
         throw Error;
       }
@@ -227,21 +254,30 @@ class MediasoupClientStore {
   private async consume(remotePeerIds: string[]) {
     const remoteProducersData = this.remotePeers
       .filter((p) => remotePeerIds.includes(p.id))
-      .reduce<{ remotePeerId: string; producerId: string }[]>((acc, cur) => {
-        const res = cur.producerIds.map((val) => ({
-          remotePeerId: cur.id,
-          producerId: val,
-        }));
-
-        acc.push(...res);
-        return acc;
-      }, []);
+      .reduce<{ remotePeerId: string; producerId: string; source: Source }[]>(
+        (acc, cur) => {
+          const res = cur.producersData.map((val) => ({
+            remotePeerId: cur.id,
+            producerId: val.producerId,
+            source: val.source,
+          }));
+          acc.push(...res);
+          return acc;
+        },
+        []
+      );
 
     const { roomId, peerId } = this.defaultRoomData;
 
     return Promise.all(
       remoteProducersData.map((p) =>
-        this.createConsumer(roomId, peerId, p.remotePeerId, p.producerId)
+        this.createConsumer(
+          roomId,
+          peerId,
+          p.remotePeerId,
+          p.producerId,
+          p.source === "screen"
+        )
       )
     );
   }
@@ -341,7 +377,8 @@ class MediasoupClientStore {
     roomId: string,
     localPeerId: string,
     remotePeerId: string,
-    producerId: string
+    producerId: string,
+    isScreenShare: boolean = false
   ) {
     if (!this.recvTransport) {
       await this.createRecvTransport();
@@ -363,7 +400,19 @@ class MediasoupClientStore {
       throw new Error(`Create consumer: recvTransport not found`);
     }
 
-    const consumer = await this.recvTransport.consume(data);
+    const consumer: Consumer<{ source: "screen" | "video" | "audio" }> =
+      await this.recvTransport.consume({
+        ...data,
+        appData: {
+          source: isScreenShare ? "screen" : data.kind,
+          peerId: remotePeerId,
+        },
+      });
+
+    if (isScreenShare) {
+      this.addRemoteScreenConsumer(consumer);
+      return;
+    }
 
     this.addRemoteConsumer(remotePeerId, consumer);
   }
@@ -420,9 +469,10 @@ class MediasoupClientStore {
       const mediaTracks = this.root.mediaDevices.getMediaTracks();
 
       if (mediaTracks.length) {
-        await Promise.all(mediaTracks.map((track) => this.produce(track)));
+        await Promise.all(
+          mediaTracks.map((track) => this.createProducer(track))
+        );
       }
-      console.log("createRoom: final");
     } catch (err) {
       this.cleanupSession();
       if (err instanceof Error) {
@@ -475,8 +525,6 @@ class MediasoupClientStore {
         }));
       });
 
-      console.log(" this.remotePeers", this.remotePeers);
-
       // 5 Создание recvtransport
       await this.createRecvTransport();
       // 6 Подписка на потоки
@@ -484,14 +532,15 @@ class MediasoupClientStore {
       // 7 отправка потоков
       await this.createSendTransport();
       const mediaTracks = this.root.mediaDevices.getMediaTracks();
-      console.log("enterRoom mediaTracks: ", mediaTracks);
+
       if (mediaTracks.length) {
-        await Promise.all(mediaTracks.map((track) => this.produce(track)));
+        await Promise.all(
+          mediaTracks.map((track) => this.createProducer(track))
+        );
       }
+
       await this.root.network.apiSend()("peerConnected", this.defaultRoomData);
-      console.log("enterRoom final", this.remotePeers);
     } catch (err) {
-      console.log("qwerwerwerwerwerwer error", err);
       this.cleanupSession();
       if (err instanceof Error) {
         this.root.error.setError(err);
@@ -507,6 +556,13 @@ class MediasoupClientStore {
       });
     }
     this.remotePeers = this.remotePeers.filter((p) => p.id !== peerId);
+
+    if (
+      this.isRemoteScreenActive &&
+      peerId === this.remoteScreenConsumer?.appData.peerId
+    ) {
+      this.clearRemoteScreen();
+    }
   }
 
   async addRemotePeer(remotePeer: RemotePeer) {
@@ -555,7 +611,7 @@ class MediasoupClientStore {
       throw new Error("camOn: video track not found");
     }
 
-    await this.produce(track);
+    await this.createProducer(track);
     await this.root.network.apiSend()("camOn", this.defaultRoomData);
   }
 
@@ -577,7 +633,10 @@ class MediasoupClientStore {
 
         foundConsumer?.close();
         p.consumers = p.consumers.filter((c) => c.producerId !== produserId);
-        p.producerIds = p.producerIds.filter((p) => p !== produserId);
+        //p.producerIds = p.producerIds.filter((p) => p !== produserId);
+        p.producersData = p.producersData.filter(
+          (p) => p.producerId !== produserId
+        );
         return { ...p };
       }
       return p;
@@ -604,19 +663,83 @@ class MediasoupClientStore {
     }
   }
 
+  async startLocalScreenShare(track: MediaStreamTrack) {
+    if (!track) {
+      return;
+    }
+    if (!this.sendTransport) {
+      await this.createSendTransport();
+    }
+    await this.createProducer(track, true);
+    await this.root.network.apiSend()("screenOn", this.defaultRoomData);
+  }
+
+  async stopLocalScreenShare() {
+    this.screenProducer?.close();
+    this.root.network.apiSend()("screenOf", this.defaultRoomData);
+  }
+
+  async startRemoteScreenShare(remotePeerId: string, screenProducerId: string) {
+    if (!this.roomId || !this.peerId) {
+      throw new Error("addConsumerToRemotePeer error");
+    }
+    await this.createConsumer(
+      this.roomId,
+      this.peerId,
+      remotePeerId,
+      screenProducerId,
+      true
+    );
+  }
+
+  async stopRemoteScreenShare(remotePeerId: string, screenProducerId: string) {
+    if (!this.roomId || !this.peerId) {
+      throw new Error("stopRemoteScreenShare error");
+    }
+
+    this.deleteConsumerFromRemotePeer(remotePeerId, screenProducerId);
+    this.clearRemoteScreen();
+  }
+
+  clearRemoteScreen() {
+    safeStop(...(this.remoteScreenStream?.getTracks() ?? []));
+    safeClose(this.remoteScreenConsumer);
+
+    runInAction(() => {
+      this.remoteScreenStream = null;
+      this.remoteScreenConsumer = null;
+      this.isRemoteScreenActive = false;
+    });
+  }
+
+  addRemoteScreenConsumer(consumer: Consumer) {
+    if (this.remoteScreenConsumer || this.remoteScreenStream) {
+      this.clearRemoteScreen();
+    }
+    const track = consumer.track;
+    const screenStream = new MediaStream();
+    screenStream.addTrack(track);
+    this.remoteScreenStream = screenStream;
+    this.remoteScreenConsumer = consumer;
+    this.isRemoteScreenActive = true;
+  }
+
   cleanupSession() {
     this.isJoined = false;
     this.peerId = undefined;
     this.peerName = undefined;
     this.roomId = undefined;
-    this.audioProducer?.close();
-    this.videoProducer?.close();
-    this.remotePeers
-      .flatMap((remotePeer) => remotePeer.consumers)
-      .forEach((c) => c.close());
     this.remotePeers = [];
-    this.recvTransport?.close();
-    this.sendTransport?.close();
+
+    safeClose(
+      this.audioProducer,
+      this.videoProducer,
+      this.recvTransport,
+      this.sendTransport,
+      ...this.remotePeers.flatMap((remotePeer) => remotePeer.consumers)
+    );
+
+    this.clearRemoteScreen();
     this.root.mediaDevices.cleanupSession();
   }
 }

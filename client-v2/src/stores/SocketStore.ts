@@ -38,6 +38,8 @@ class SocketStore {
     this.socket.on("peer:ready", this.handlePeerReady);
     this.socket.on("peer:camOf", this.handleCamOf);
     this.socket.on("peer:camOn", this.handleCamOn);
+    this.socket.on("peer:screenOf", this.handleScreenOf);
+    this.socket.on("peer:screenOn", this.handleScreenOn);
 
     this.socket.on("connect", () => {
       this.setNetStatus("online");
@@ -75,6 +77,14 @@ class SocketStore {
 
   private handleCamOn(...args: ParamsServerEvents["peer:camOn"]) {
     this.emit("peer:camOn", ...args);
+  }
+
+  private handleScreenOn(...args: ParamsServerEvents["peer:screenOn"]) {
+    this.emit("peer:screenOn", ...args);
+  }
+
+  private handleScreenOf(...args: ParamsServerEvents["peer:screenOf"]) {
+    this.emit("peer:screenOf", ...args);
   }
 
   dispose() {

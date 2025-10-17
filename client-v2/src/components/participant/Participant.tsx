@@ -1,13 +1,11 @@
 import "./Participant.styles.scss";
-import { FC, memo, useState } from "react";
+import { FC, memo } from "react";
 import { ClientRemotePeer } from "../../stores/MediasoupClientStore";
 import ParticipantLabel from "../participant-label/ParticipantLabel";
 import MediaRenderer from "../mediaRenderer/MediaRenderer";
-
 import classNames from "classnames";
 
 const Participant: FC<{ peer: ClientRemotePeer }> = memo(({ peer }) => {
-  console.log("Participant");
   const videoTrack = peer.mediaStream.getVideoTracks()[0];
 
   return (

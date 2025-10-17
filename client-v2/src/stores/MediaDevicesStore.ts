@@ -4,8 +4,11 @@ import { RootStore } from "./RootStore";
 class MediaDevicesStore {
   root: RootStore;
   stream: MediaStream | null = null;
+  screenStream: MediaStream | null = null;
+
   audioTrack: MediaStreamTrack | null = null;
   videoTrack: MediaStreamTrack | null = null;
+
   allMediaDevices: MediaDeviceInfo[];
   cams: MediaDeviceInfo[];
   mics: MediaDeviceInfo[];
@@ -25,9 +28,41 @@ class MediaDevicesStore {
     makeAutoObservable(this, {
       audioTrack: observable.ref,
       videoTrack: observable.ref,
+      // screenTrack: observable.ref,
       stream: observable.ref,
+      screenStream: observable.ref,
       // ref / shallow / deep / struct
     });
+  }
+
+  async toggleScreenShare(on: boolean) {
+    if (this.screenStream) {
+      this.stopAllTracks(this.screenStream);
+      this.screenStream = null;
+    }
+
+    if (on) {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          frameRate: 15,
+          width: { max: 2560 },
+          height: { max: 1440 },
+        },
+        audio: false,
+      });
+
+      const screenTrack = screenStream.getVideoTracks()[0];
+
+      this.attachTrack(screenTrack, true);
+
+      runInAction(() => {
+        this.screenStream = screenStream;
+      });
+
+      this.root.mediaSoupClient.startLocalScreenShare(screenTrack);
+    } else {
+      this.root.mediaSoupClient.stopLocalScreenShare();
+    }
   }
 
   toggleMic(on: boolean) {
@@ -49,7 +84,9 @@ class MediaDevicesStore {
       this.camOn = on;
     });
 
-    !on ? this.stopCam() : this.startCam();
+    if (this.root.mediaSoupClient.isJoined) {
+      !on ? this.stopCam() : this.startCam();
+    }
   }
 
   async stopCam() {
@@ -84,6 +121,7 @@ class MediaDevicesStore {
 
       this.stream.addTrack(track);
       this.videoTrack = track;
+      this.attachTrack(track);
       tmpStream.removeTrack(track);
 
       this.root.mediaSoupClient.camOn();
@@ -204,7 +242,6 @@ class MediaDevicesStore {
       this.stopAllTracks(initStream);
       initStream = null;
     } catch (err) {
-      console.log("catch1");
       runInAction(() => {
         this.isMediaDevicesLoading = false;
       });
@@ -212,20 +249,23 @@ class MediaDevicesStore {
     }
   }
 
-  attachTrack(track: MediaStreamTrack) {
+  attachTrack(track: MediaStreamTrack, isScreenTrack: boolean = false) {
     const type = track.kind as "video" | "audio";
 
     const onEnded = () => {
-      console.log("track on ended", track);
       runInAction(() => {
-        if (type === "audio") {
+        if (type === "audio" && !isScreenTrack) {
           this.audioTrack = null;
           this.micOn = false;
         }
 
-        if (type === "video") {
+        if (type === "video" && !isScreenTrack) {
           this.videoTrack = null;
           this.camOn = false;
+        }
+
+        if (type === "video" && isScreenTrack) {
+          this.screenStream = null;
         }
 
         if (this.cleanupTrackListeners.has(track)) {
@@ -235,7 +275,7 @@ class MediaDevicesStore {
       });
 
       throw new Error(
-        `Медиа поток внезапно остановился, возможно нужно разрешить исполозование камеры и микрофона в браузере`
+        `Медиа поток внезапно остановился, возможно нужно разрешить использование камеры и микрофона в браузере`
       );
     };
 
@@ -314,6 +354,9 @@ class MediaDevicesStore {
   // Оставиновит все треки и удалит стрим
   cleanupSession() {
     this.stopAllTracks(this.stream);
+    this.stopAllTracks(this.screenStream);
+    this.screenStream = null;
+    this.stream = null;
   }
 }
 

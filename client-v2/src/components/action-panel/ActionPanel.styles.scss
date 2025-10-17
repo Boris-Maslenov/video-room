@@ -29,4 +29,9 @@
   &.color-red {
     color: rgb(237, 52, 52);
   }
+
+  &:disabled {
+    background-color: #414040;
+    cursor: auto;
+  }
 }

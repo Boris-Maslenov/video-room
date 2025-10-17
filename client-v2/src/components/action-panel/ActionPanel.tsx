@@ -27,6 +27,8 @@ type ActionPanelProps = {
   onPanelAction: (type: ActionTypes) => void;
   micState: boolean;
   camState: boolean;
+  screenState: boolean;
+  disabled: Partial<Record<ActionTypes, boolean>>;
 };
 
 export type ActionTypes = "mic" | "cam" | "screen" | "shared" | "exit";
@@ -35,20 +37,41 @@ const ActionPanel: FC<ActionPanelProps> = ({
   onPanelAction,
   micState,
   camState,
+  screenState,
+  disabled = {},
 }) => {
   return (
     <div className="ActionsPanel">
       <div className="left-item">
-        <button className="IconButton" onClick={() => onPanelAction("shared")}>
+        <button
+          className="IconButton"
+          onClick={() => onPanelAction("shared")}
+          disabled={disabled["shared"]}
+        >
           <LinkIcon />
         </button>
       </div>
       <div className="center-item">
-        <button className="IconButton" onClick={() => onPanelAction("mic")}>
+        <button
+          className="IconButton"
+          onClick={() => onPanelAction("mic")}
+          disabled={disabled["mic"]}
+        >
           <MicSwitch on={micState} />
         </button>
-        <button className="IconButton" onClick={() => onPanelAction("cam")}>
+        <button
+          className="IconButton"
+          onClick={() => onPanelAction("cam")}
+          disabled={disabled["cam"]}
+        >
           <CamSwitch on={camState} />
+        </button>
+        <button
+          className="IconButton"
+          onClick={() => onPanelAction("screen")}
+          disabled={disabled["screen"]}
+        >
+          <ScreenSwitch on={screenState} />
         </button>
       </div>
       <div className="right-item">

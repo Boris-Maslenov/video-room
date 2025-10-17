@@ -19,13 +19,25 @@ const RootLayout: FC = () => {
   const [roomId] = useParams(ROOM_QUERY_KEY);
 
   useEffect(() => {
-    socketStore.addListener("peer:closed", mediaStore.deleteRemotePeer);
-    socketStore.addListener("peer:ready", mediaStore.addRemotePeer);
-    socketStore.addListener(
-      "peer:camOf",
-      mediaStore.deleteConsumerFromRemotePeer
+    socketStore.addListener("peer:closed", (a) =>
+      mediaStore.deleteRemotePeer(a)
     );
-    socketStore.addListener("peer:camOn", mediaStore.addConsumerToRemotePeer);
+    socketStore.addListener("peer:ready", (a) => {
+      console.log("peer:ready");
+      mediaStore.addRemotePeer(a);
+    });
+    socketStore.addListener("peer:camOf", (a, b) =>
+      mediaStore.deleteConsumerFromRemotePeer(a, b)
+    );
+    socketStore.addListener("peer:camOn", (a, b) =>
+      mediaStore.addConsumerToRemotePeer(a, b)
+    );
+    socketStore.addListener("peer:screenOn", (remotePeerId, producerId) => {
+      mediaStore.startRemoteScreenShare(remotePeerId, producerId);
+    });
+    socketStore.addListener("peer:screenOf", (remotePeerId, producerId) => {
+      mediaStore.stopRemoteScreenShare(remotePeerId, producerId);
+    });
   }, []);
 
   return (

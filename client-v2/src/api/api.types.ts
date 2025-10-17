@@ -36,6 +36,8 @@ export type ParamsServerEvents = {
   "peer:closed": [string];
   "peer:camOn": [string, string];
   "peer:camOf": [string, string];
+  "peer:screenOn": [string, string];
+  "peer:screenOf": [string, string];
 };
 
 export type ClientEvents = {};
