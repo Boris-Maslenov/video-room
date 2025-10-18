@@ -1,7 +1,6 @@
 import { FC } from "react";
 import "./ActionPanel.styles.scss";
 import {
-  MicOnIcon,
   MicOffIcon,
   CamOnIcon,
   CamOffIcon,
@@ -11,8 +10,10 @@ import {
   CloseIcon,
 } from "../icons";
 
+import { MicLevel } from "../mic-level/MicLevel";
+
 const MicSwitch: FC<{ on: boolean }> = ({ on }) => {
-  return on ? <MicOnIcon /> : <MicOffIcon />;
+  return on ? <MicLevel /> : <MicOffIcon />;
 };
 
 const CamSwitch: FC<{ on: boolean }> = ({ on }) => {

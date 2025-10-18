@@ -251,17 +251,19 @@ class MediaDevicesStore {
 
   attachTrack(track: MediaStreamTrack, isScreenTrack: boolean = false) {
     const type = track.kind as "video" | "audio";
-
     const onEnded = () => {
+      console.log("onEnded", track);
       runInAction(() => {
         if (type === "audio" && !isScreenTrack) {
           this.audioTrack = null;
           this.micOn = false;
+          // TODO: Закрыть или приостановить продюсер
         }
 
         if (type === "video" && !isScreenTrack) {
           this.videoTrack = null;
           this.camOn = false;
+          // TODO: Закрыть или приостановить продюсер
         }
 
         if (type === "video" && isScreenTrack) {
@@ -353,6 +355,7 @@ class MediaDevicesStore {
 
   // Оставиновит все треки и удалит стрим
   cleanupSession() {
+    console.log("cleanupSession");
     this.stopAllTracks(this.stream);
     this.stopAllTracks(this.screenStream);
     this.screenStream = null;
