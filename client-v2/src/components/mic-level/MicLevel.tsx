@@ -3,25 +3,30 @@ import { calcRMS, mapLevelToValue } from "../../utils/calcRMS";
 import { useDevicesStore } from "../../context/StoresProvider";
 import { observer } from "mobx-react-lite";
 
+const VAR = "--level";
+const MIN_VALUE = 13;
+const NOISE_LEVEL = 0.01;
+const BOOSTER = 10;
+
 export const MicLevel: FC = observer(() => {
   console.log("MicLevel RENDER");
   const deviseStore = useDevicesStore();
   const track = deviseStore.audioTrack;
 
-  console.log("track render", deviseStore.audioTrack);
-
   const levelElem = useRef<SVGRectElement>(null);
   // создаём аудиоконтекст
   const ctxRef = useRef<AudioContext>(new AudioContext());
+  console.log(ctxRef);
   // узел-источник: стрим
   const sourceRef = useRef(
-    track
+    track && track.readyState !== "ended"
       ? ctxRef.current.createMediaStreamSource(new MediaStream([track.clone()]))
       : undefined
   );
+  console.log(sourceRef);
   // узел-анализатор
-  // const analyser = ctxRef.createAnalyser();
   const analyserRef = useRef(ctxRef.current.createAnalyser());
+  console.log(sourceRef);
   // присоединяем анализатор к источнику
   if (sourceRef.current) {
     sourceRef.current.connect(analyserRef.current);
@@ -31,48 +36,45 @@ export const MicLevel: FC = observer(() => {
     console.log("MicLevel useEffect");
     let rafId: number;
     let prevTick: number = 0;
+    const data = new Float32Array(analyserRef.current.fftSize);
 
     const tick = (timeStamp: number) => {
+      if (timeStamp - prevTick > 200) {
+        analyserRef.current.getFloatTimeDomainData(data);
+        const rms = calcRMS(data);
+
+        if (rms < NOISE_LEVEL) {
+          const nextPx = `${MIN_VALUE}px`;
+          if (levelElem.current?.style.getPropertyValue(VAR) !== nextPx) {
+            levelElem.current?.style.setProperty(VAR, nextPx);
+          }
+        } else {
+          const level = Math.max(0, Math.min(1, rms * BOOSTER));
+          const levelValue = Math.ceil(mapLevelToValue(level, MIN_VALUE));
+
+          if (levelElem.current) {
+            levelElem.current.style.setProperty(VAR, `${levelValue}px`);
+          }
+        }
+        prevTick = timeStamp;
+      }
       rafId = requestAnimationFrame(tick);
-
-      if (timeStamp - prevTick < 100) {
-        return;
-      }
-
-      prevTick = timeStamp;
-
-      const data = new Float32Array(analyserRef.current.fftSize);
-      analyserRef.current.getFloatTimeDomainData(data);
-
-      const rms = calcRMS(data);
-      const level = Math.max(0, Math.min(1, rms * 20));
-      const levelValue = mapLevelToValue(level, 13);
-
-      // console.log(
-      //   track,
-      //   analyserRef.current,
-      //   sourceRef.current,
-      //   ctxRef.current
-      // );
-
-      if (levelElem.current) {
-        // console.log(rms, levelValue);
-        levelElem.current.style.setProperty("--level", `${levelValue}px`);
-      }
     };
 
     rafId = requestAnimationFrame(tick);
 
     return () => {
       try {
+        console.log("clean");
         cancelAnimationFrame(rafId);
         sourceRef.current?.disconnect();
+        sourceRef.current = undefined;
         ctxRef.current.close();
-      } catch (err) {
-        console.log("!!!!!!!!!!!");
-      }
+        // @ts-ignore
+        ctxRef.current = undefined;
+      } catch (err) {}
     };
-  }, [track]);
+  }, []);
 
   return (
     <svg
@@ -94,7 +96,7 @@ export const MicLevel: FC = observer(() => {
             fill="white"
             style={{
               // @ts-ignore
-              "--level": "13px",
+              "--level": `${MIN_VALUE}px`,
               transition: "transform 0.2s",
               transform: "translateY(var(--level))",
             }}
@@ -104,7 +106,7 @@ export const MicLevel: FC = observer(() => {
       <path d="M11.998 2a4 4 0 0 0-4 4v5a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4"></path>
       <g mask="url(#micLevel)">
         <path
-          fill="green"
+          fill="#07a107ff"
           d="M11.998 2a4 4 0 0 0-4 4v5a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4"
         ></path>
       </g>

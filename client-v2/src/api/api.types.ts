@@ -26,6 +26,7 @@ export const isErrorSocketType = (a: any): a is ErrorSocketType => {
 };
 
 export type KindType = "audio" | "video";
+export type SourceType = KindType | "screen";
 
 export type ServerEvents = {
   [K in keyof ParamsServerEvents]: (...args: ParamsServerEvents[K]) => void;

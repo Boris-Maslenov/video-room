@@ -9,7 +9,7 @@ import type {
   Consumer,
   RtpParameters,
 } from "mediasoup-client/types";
-import { KindType } from "../api/api.types";
+import { KindType, SourceType } from "../api/api.types";
 import { safeClose, safeStop } from "../utils/mediaUtils";
 import { SCREEN_PRODUCER_OPTIONS } from "../config";
 
@@ -27,7 +27,7 @@ export type Peer = {
   isJoined: boolean;
 };
 
-export type ProducerKey = "audioProducer" | "videoProducer";
+export type ProducerKey = "audioProducer" | "videoProducer" | "screenProducer";
 
 export type NetworkPeerStatus = "offline" | "connecting" | "online";
 
@@ -59,7 +59,7 @@ const producersMap = {
   audio: "audioProducer",
   video: "videoProducer",
   screen: "screenProducer",
-} as Record<KindType, ProducerKey>;
+} as Record<SourceType, ProducerKey>;
 
 class MediasoupClientStore {
   root: RootStore;
@@ -102,7 +102,11 @@ class MediasoupClientStore {
     // producer.observer.on('pause', ...) — уже на паузе → обновляем индикаторы.
     // producer.observer.on('resume', ...) — уже возобновлён → обновляем индикаторы.
     // producer.observer.on('trackended', ...) — факт «трек закончился» (для логов).
-    const kind = produer.kind as KindType;
+
+    // TODO: при установке screen продюсера имеет смысл отключать камеру
+    const kind: SourceType =
+      produer.appData.source === "screen" ? "screen" : produer.kind;
+
     let existingProducer = this[producersMap[kind]];
 
     if (existingProducer) {

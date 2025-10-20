@@ -43,7 +43,9 @@ const Room = () => {
       isJoined: mediaSoupStore.isJoined,
       status: "online",
       consumers: [],
-      mediaStream: devicesStore.stream ?? new MediaStream(),
+      mediaStream: new MediaStream(
+        devicesStore.videoTrack ? [devicesStore.videoTrack] : []
+      ),
     };
   };
 
@@ -61,6 +63,7 @@ const Room = () => {
       }
       case "screen": {
         const old = Boolean(devicesStore.screenStream);
+        console.log("1", devicesStore.videoTrack?.readyState);
         devicesStore.toggleScreenShare(!old);
         break;
       }

@@ -1,5 +1,6 @@
 import { makeAutoObservable, runInAction, observable, reaction } from "mobx";
 import { RootStore } from "./RootStore";
+import { safeStop } from "../utils/mediaUtils";
 
 class MediaDevicesStore {
   root: RootStore;
@@ -37,7 +38,7 @@ class MediaDevicesStore {
 
   async toggleScreenShare(on: boolean) {
     if (this.screenStream) {
-      this.stopAllTracks(this.screenStream);
+      safeStop(...this.screenStream.getTracks());
       this.screenStream = null;
     }
 
@@ -302,18 +303,16 @@ class MediaDevicesStore {
     const stream =
       needAudio || needVideo
         ? await navigator.mediaDevices.getUserMedia({
-            audio: needAudio
-              ? {
-                  deviceId:
-                    this.selectedMic === "default" ||
-                    this.selectedMic === "communications"
-                      ? this.selectedMic!
-                      : { exact: this.selectedMic! },
-                }
-              : false,
-            video: needVideo
-              ? { deviceId: { exact: this.selectedCam! } }
-              : false,
+            audio:
+              needAudio && this.selectedMic
+                ? {
+                    deviceId: { exact: this.selectedMic },
+                  }
+                : false,
+            video:
+              needVideo && this.selectedCam
+                ? { deviceId: { exact: this.selectedCam } }
+                : false,
           })
         : null;
 

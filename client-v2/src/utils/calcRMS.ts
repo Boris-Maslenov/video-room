@@ -6,6 +6,16 @@ export const calcRMS = (data: Float32Array): number => {
   return Math.sqrt(sum / data.length);
 };
 
+export const maxLevel = (data: Float32Array) => {
+  return data.reduce((acc, cur) => {
+    const absCut = Math.abs(cur);
+    if (absCut > acc) {
+      acc = absCut;
+    }
+    return acc;
+  }, 0);
+};
+
 export const mapLevelToValue = (level: number, max: number): number => {
   const clamped = Math.max(0, Math.min(1, level));
   return (1 - clamped) * max;
