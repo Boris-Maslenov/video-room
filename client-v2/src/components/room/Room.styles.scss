@@ -6,19 +6,25 @@
 .MediaCanvas {
   flex: 1 0 0%;
   width: 100%;
-  // border: 1px solid #cdcdcd;
   padding: 20px;
   min-height: 0;
   max-height: calc(100vh - 80px);
-  overflow: auto;
-
   display: grid;
   align-content: center;
-  // grid-template-columns: repeat(auto-fit, minmax(320px, 0.5fr));
-  grid-template-columns: repeat(auto-fit, minmax(calc(25vw - 40px), 0.5fr));
-  // grid-template-rows: 1fr 1fr 1fr 1fr;
-  // grid-auto-rows: minmax(0, 1fr);
+  grid-auto-columns: 1fr;
+  grid-template-rows: 1fr;
+  position: relative;
+}
+
+.MediaSlider {
+  width: 100%;
+  height: 100%;
+}
+
+.MediaSlide.swiper-slide {
+  display: grid;
   gap: 10px;
   margin-block: auto;
-  position: relative;
+  align-content: center;
+  grid-template-columns: repeat(auto-fit, minmax(calc(25vw - 40px), 0.5fr));
 }

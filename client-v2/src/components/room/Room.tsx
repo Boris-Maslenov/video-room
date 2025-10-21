@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   useDevicesStore,
   useMediaSoupStore,
@@ -9,9 +10,10 @@ import ActionPanel, { ActionTypes } from "../action-panel/ActionPanel";
 import ScreenSharePresentation from "../screen-presentation/ScreenSharePresentation";
 import "./Room.styles.scss";
 import { Producer } from "mediasoup-client/types";
-import { useMemo } from "react";
+import SlidesCalculator from "../slides-calculator/SlidesCalculator";
 
 const Room = () => {
+  console.log("RENDER ROOM");
   const devicesStore = useDevicesStore();
   const mediaSoupStore = useMediaSoupStore();
   const remotePeers = mediaSoupStore.remotePeers;
@@ -29,7 +31,7 @@ const Room = () => {
     return {
       id: mediaSoupStore.peerId ?? "",
       roomId: mediaSoupStore.roomId ?? "",
-      name: mediaSoupStore.peerName ?? "",
+      name: mediaSoupStore.peerName ?? "Борис Масленов",
       producersData: (
         [
           mediaSoupStore?.audioProducer,
@@ -77,13 +79,23 @@ const Room = () => {
     }
   };
 
+  const selfPeer = useMemo(() => {
+    const peer = getSelfPeer();
+    return <Participant key={peer.id} peer={peer} />;
+  }, [devicesStore.videoTrack]);
+
   return (
     <div className="Room">
       <div className="MediaCanvas">
-        <Participant peer={getSelfPeer()} />
-        {remotePeers.map((p) => (
+        <SlidesCalculator>
+          {selfPeer}
+          {remotePeers.map((p) => (
+            <Participant key={p.id} peer={p} />
+          ))}
+        </SlidesCalculator>
+        {/* {remotePeers.map((p) => (
           <Participant key={p.id} peer={p} />
-        ))}
+        ))} */}
         {screenShareMode && (
           <ScreenSharePresentation
             stream={

@@ -27,13 +27,13 @@ export const MicLevel: FC = observer(() => {
   // узел-анализатор
   const analyserRef = useRef(ctxRef.current.createAnalyser());
   console.log(sourceRef);
-  // присоединяем анализатор к источнику
-  if (sourceRef.current) {
-    sourceRef.current.connect(analyserRef.current);
-  }
 
   useEffect(() => {
-    console.log("MicLevel useEffect");
+    // присоединяем анализатор к источнику
+    if (sourceRef.current) {
+      sourceRef.current.connect(analyserRef.current);
+    }
+
     let rafId: number;
     let prevTick: number = 0;
     const data = new Float32Array(analyserRef.current.fftSize);

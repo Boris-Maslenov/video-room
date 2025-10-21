@@ -121,7 +121,9 @@ class MediaDevicesStore {
       }
 
       this.stream.addTrack(track);
-      this.videoTrack = track;
+      runInAction(() => {
+        this.videoTrack = track;
+      });
       this.attachTrack(track);
       tmpStream.removeTrack(track);
 
