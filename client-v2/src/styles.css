@@ -1,2 +1,11 @@
 @import "swiper/css";
 @import "swiper/css/pagination";
+
+:root {
+  --swiper-theme-color: #fff;
+  --swiper-pagination-bullet-inactive-opacity: 0.3;
+}
+
+.swiper-pagination-bullet {
+  background: #cdcdcd;
+}

@@ -1,4 +1,4 @@
-import { makeAutoObservable, observable, runInAction } from "mobx";
+import { makeAutoObservable, observable, runInAction, computed } from "mobx";
 import { RootStore } from "./RootStore";
 import { Device } from "mediasoup-client";
 import type {
@@ -82,15 +82,25 @@ class MediasoupClientStore {
   remoteScreenStream: MediaStream | null = null;
   isRemoteScreenActive: boolean = false;
 
+  _visiblePeerIds: string[] = [];
+
   constructor(root: RootStore) {
     this.root = root;
     this.device = new Device();
 
     makeAutoObservable(
       this,
-      { remotePeers: observable.ref },
+      { remotePeers: observable.ref, visiblePeerIds: computed.struct },
       { autoBind: true }
     );
+  }
+
+  get visiblePeerIds() {
+    return this._visiblePeerIds;
+  }
+  set visiblePeerIds(ids: string[]) {
+    console.log("visiblePeerIds", ids);
+    this._visiblePeerIds = ids;
   }
 
   private setLocalProducer(produer: AppProducer) {

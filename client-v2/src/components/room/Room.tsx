@@ -87,15 +87,14 @@ const Room = () => {
   return (
     <div className="Room">
       <div className="MediaCanvas">
-        <SlidesCalculator>
+        <SlidesCalculator
+          onChangeOrUpdateSlide={(ids) => (mediaSoupStore.visiblePeerIds = ids)}
+        >
           {selfPeer}
           {remotePeers.map((p) => (
             <Participant key={p.id} peer={p} />
           ))}
         </SlidesCalculator>
-        {/* {remotePeers.map((p) => (
-          <Participant key={p.id} peer={p} />
-        ))} */}
         {screenShareMode && (
           <ScreenSharePresentation
             stream={

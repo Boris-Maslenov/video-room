@@ -9,7 +9,10 @@ const Participant: FC<{ peer: ClientRemotePeer }> = memo(({ peer }) => {
   const videoTrack = peer.mediaStream.getVideoTracks()[0];
 
   return (
-    <div className={classNames("Participant", { "video-active": videoTrack })}>
+    <div
+      data-peer-id={peer.id}
+      className={classNames("Participant", { "video-active": videoTrack })}
+    >
       <ParticipantLabel />
       <MediaRenderer stream={peer.mediaStream} />
       <div className="ParticipantInfo">{peer.name}</div>

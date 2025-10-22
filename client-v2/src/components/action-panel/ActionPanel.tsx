@@ -68,7 +68,7 @@ const ActionPanel: FC<ActionPanelProps> = ({
           <CamSwitch on={camState} />
         </button>
         <button
-          className="IconButton"
+          className="IconButton mobile-hidden"
           onClick={() => onPanelAction("screen")}
           disabled={disabled["screen"]}
         >
