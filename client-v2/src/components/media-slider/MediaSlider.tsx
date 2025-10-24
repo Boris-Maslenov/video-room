@@ -8,7 +8,7 @@ type PropsType = {
   onChangeOrUpdateSlide: (num: string[]) => void;
 };
 
-const MAX_ITEMS = 12;
+const MAX_ITEMS = 2;
 
 const getGroups = (
   elemCount: number,
@@ -32,10 +32,7 @@ const calcMaxItems = (width: number, height: number): number => {
   return MAX_ITEMS;
 };
 
-const SlidesCalculator: FC<PropsType> = ({
-  children,
-  onChangeOrUpdateSlide,
-}) => {
+const MediaSlider: FC<PropsType> = ({ children, onChangeOrUpdateSlide }) => {
   console.log("SlidesCalculator");
   const [maxItemsInSlide, setMaxItemsInSlide] = useState(MAX_ITEMS);
   const elementsCount = Children.count(children);
@@ -43,6 +40,7 @@ const SlidesCalculator: FC<PropsType> = ({
 
   return (
     <Swiper
+      speed={1000}
       slidesPerView="auto"
       pagination={{ type: "bullets" }}
       mousewheel={true}
@@ -56,7 +54,16 @@ const SlidesCalculator: FC<PropsType> = ({
           direction: "vertical",
         },
       }}
+      onSlideChangeTransitionStart={(swiper) => {
+        console.log("🚀 Начало перелистывания");
+        console.log("Активный индекс:", swiper.activeIndex, swiper);
+      }}
+      onSlideChangeTransitionEnd={(swiper) => {
+        console.log("✅ Перелистывание завершено");
+        console.log("Новый активный слайд:", swiper.activeIndex, swiper);
+      }}
       onSlideChange={(s) => {
+        console.log("🚀 onSlideChange", s);
         onChangeOrUpdateSlide(getPeersInActiveSlide(s.activeIndex));
       }}
       onSwiper={(swiper) => {
@@ -89,4 +96,4 @@ const SlidesCalculator: FC<PropsType> = ({
   );
 };
 
-export default SlidesCalculator;
+export default MediaSlider;

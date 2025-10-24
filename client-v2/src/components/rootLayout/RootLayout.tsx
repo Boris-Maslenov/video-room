@@ -38,6 +38,9 @@ const RootLayout: FC = () => {
     socketStore.addListener("peer:screenOf", (remotePeerId, producerId) => {
       mediaStore.stopRemoteScreenShare(remotePeerId, producerId);
     });
+    socketStore.addListener("peer:toogleMic", (remotePeerId, micOn) => {
+      mediaStore.toogleRemoteMic(remotePeerId, micOn);
+    });
   }, []);
 
   return (

@@ -73,6 +73,7 @@ class MediaDevicesStore {
         this.audioTrack.enabled = on;
       }
       this.micOn = on;
+      this.root.mediaSoupClient.toogleMic(on);
     });
   }
 
@@ -261,12 +262,13 @@ class MediaDevicesStore {
           this.audioTrack = null;
           this.micOn = false;
           // TODO: Закрыть или приостановить продюсер
+          // TODO: учесть флаг micOn
         }
-
         if (type === "video" && !isScreenTrack) {
           this.videoTrack = null;
           this.camOn = false;
           // TODO: Закрыть или приостановить продюсер
+          // TODO: учесть флаг camOn
         }
 
         if (type === "video" && isScreenTrack) {

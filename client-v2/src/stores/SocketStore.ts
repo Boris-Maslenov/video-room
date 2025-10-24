@@ -40,6 +40,7 @@ class SocketStore {
     this.socket.on("peer:camOn", this.handleCamOn);
     this.socket.on("peer:screenOf", this.handleScreenOf);
     this.socket.on("peer:screenOn", this.handleScreenOn);
+    this.socket.on("peer:toogleMic", this.handleToogleMic);
 
     this.socket.on("connect", () => {
       this.setNetStatus("online");
@@ -85,6 +86,10 @@ class SocketStore {
 
   private handleScreenOf(...args: ParamsServerEvents["peer:screenOf"]) {
     this.emit("peer:screenOf", ...args);
+  }
+
+  private handleToogleMic(...args: ParamsServerEvents["peer:toogleMic"]) {
+    this.emit("peer:toogleMic", ...args);
   }
 
   dispose() {

@@ -30,9 +30,12 @@
     bottom: 25px;
     font-size: 20px;
     background-color: green;
-    padding: 5px 45px;
+    padding: 5px 25px;
     border-radius: 20px;
     text-align: center;
-    font-size: 15px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 }

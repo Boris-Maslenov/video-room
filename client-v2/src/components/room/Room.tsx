@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   useDevicesStore,
   useMediaSoupStore,
@@ -10,12 +10,13 @@ import ActionPanel, { ActionTypes } from "../action-panel/ActionPanel";
 import ScreenSharePresentation from "../screen-presentation/ScreenSharePresentation";
 import "./Room.styles.scss";
 import { Producer } from "mediasoup-client/types";
-import SlidesCalculator from "../slides-calculator/SlidesCalculator";
+import MediaSlider from "../media-slider/MediaSlider";
 
 const Room = () => {
   console.log("RENDER ROOM");
   const devicesStore = useDevicesStore();
   const mediaSoupStore = useMediaSoupStore();
+  const selfPeer = mediaSoupStore.selfPeer;
   const remotePeers = mediaSoupStore.remotePeers;
   const isSelfScreenShare = Boolean(devicesStore.screenStream);
   const isRemoteScreenMode = mediaSoupStore.isRemoteScreenActive;
@@ -27,29 +28,30 @@ const Room = () => {
     };
   }, [isRemoteScreenMode]);
 
-  const getSelfPeer = (): ClientRemotePeer => {
-    return {
-      id: mediaSoupStore.peerId ?? "",
-      roomId: mediaSoupStore.roomId ?? "",
-      name: mediaSoupStore.peerName ?? "Борис Масленов",
-      producersData: (
-        [
-          mediaSoupStore?.audioProducer,
-          mediaSoupStore?.videoProducer,
-          mediaSoupStore?.screenProducer,
-        ].filter(Boolean) as Producer<{
-          source: Source;
-        }>[]
-      ).map((p) => ({ producerId: p.id, source: p.appData.source })),
-      socketId: "",
-      isJoined: mediaSoupStore.isJoined,
-      status: "online",
-      consumers: [],
-      mediaStream: new MediaStream(
-        devicesStore.videoTrack ? [devicesStore.videoTrack] : []
-      ),
-    };
-  };
+  // const getSelfPeer = (): ClientRemotePeer => {
+  //   return {
+  //     id: mediaSoupStore.peerId ?? "",
+  //     roomId: mediaSoupStore.roomId ?? "",
+  //     name: mediaSoupStore.peerName ?? "Борис Масленов",
+  //     micOn: devicesStore.micOn,
+  //     camOn: devicesStore.camOn,
+  //     producersData: (
+  //       [
+  //         mediaSoupStore?.audioProducer,
+  //         mediaSoupStore?.videoProducer,
+  //         mediaSoupStore?.screenProducer,
+  //       ].filter(Boolean) as Producer<{
+  //         source: Source;
+  //       }>[]
+  //     ).map((p) => ({ producerId: p.id, source: p.appData.source })),
+  //     socketId: "",
+  //     isJoined: mediaSoupStore.isJoined,
+  //     consumers: [],
+  //     mediaStream: new MediaStream(
+  //       devicesStore.videoTrack ? [devicesStore.videoTrack] : []
+  //     ),
+  //   };
+  // };
 
   const handlePanelAction = (action: ActionTypes) => {
     switch (action) {
@@ -79,22 +81,19 @@ const Room = () => {
     }
   };
 
-  const selfPeer = useMemo(() => {
-    const peer = getSelfPeer();
-    return <Participant key={peer.id} peer={peer} />;
-  }, [devicesStore.videoTrack]);
+  const changeOrUpdateSlideHandle = useCallback((ids: string[]) => {
+    mediaSoupStore.manageSlideConsumers(ids);
+  }, []);
 
   return (
     <div className="Room">
       <div className="MediaCanvas">
-        <SlidesCalculator
-          onChangeOrUpdateSlide={(ids) => (mediaSoupStore.visiblePeerIds = ids)}
-        >
-          {selfPeer}
+        <MediaSlider onChangeOrUpdateSlide={changeOrUpdateSlideHandle}>
+          {selfPeer && <Participant key={selfPeer.id} peer={selfPeer} />}
           {remotePeers.map((p) => (
             <Participant key={p.id} peer={p} />
           ))}
-        </SlidesCalculator>
+        </MediaSlider>
         {screenShareMode && (
           <ScreenSharePresentation
             stream={

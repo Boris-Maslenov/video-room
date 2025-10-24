@@ -39,6 +39,7 @@ export type ParamsServerEvents = {
   "peer:camOf": [string, string];
   "peer:screenOn": [string, string];
   "peer:screenOf": [string, string];
+  "peer:toogleMic": [string, boolean];
 };
 
 export type ClientEvents = {};

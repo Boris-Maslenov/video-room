@@ -19,14 +19,6 @@ export type MediaDevice = {
   groupId: string;
 };
 
-export type Peer = {
-  id: string;
-  name: string;
-  socketId: string;
-  roomId: string;
-  isJoined: boolean;
-};
-
 export type ProducerKey = "audioProducer" | "videoProducer" | "screenProducer";
 
 export type NetworkPeerStatus = "offline" | "connecting" | "online";
@@ -40,14 +32,18 @@ export type RemoteProducerData = {
 
 export type AppProducer = Producer<{ source: Source }>;
 
-export type RemotePeer = {
+export type Peer = {
   id: string;
   roomId: string;
   name: string;
-  producersData: RemoteProducerData[];
   socketId: string;
   isJoined: boolean;
-  status: NetworkPeerStatus;
+};
+
+export type RemotePeer = Peer & {
+  micOn: boolean;
+  camOn: boolean;
+  producersData: RemoteProducerData[];
 };
 
 export type ClientRemotePeer = RemotePeer & {
@@ -82,7 +78,8 @@ class MediasoupClientStore {
   remoteScreenStream: MediaStream | null = null;
   isRemoteScreenActive: boolean = false;
 
-  _visiblePeerIds: string[] = [];
+  private _selfPeer: ClientRemotePeer | null = null;
+  private _visiblePeerIds: string[] = [];
 
   constructor(root: RootStore) {
     this.root = root;
@@ -95,12 +92,101 @@ class MediasoupClientStore {
     );
   }
 
+  get selfPeer() {
+    return this._selfPeer;
+  }
+
+  set selfPeer(peer: ClientRemotePeer | null) {
+    this._selfPeer = peer;
+  }
+
+  createSelfPeer(id: string, roomId: string, name: string, isJoined: boolean) {
+    const activeProducers = [
+      this?.audioProducer,
+      this?.videoProducer,
+      this?.screenProducer,
+    ].filter(Boolean) as Producer<{
+      source: Source;
+    }>[];
+
+    const videoTrack = this.root.mediaDevices.videoTrack;
+
+    this.selfPeer = {
+      id,
+      roomId,
+      name,
+      micOn: this.root.mediaDevices.micOn,
+      camOn: this.root.mediaDevices.camOn,
+      producersData: activeProducers.map((p) => ({
+        producerId: p.id,
+        source: p.appData.source,
+      })),
+      socketId: "",
+      isJoined,
+      consumers: [],
+      mediaStream: new MediaStream(videoTrack ? [videoTrack] : []),
+    };
+  }
+
   get visiblePeerIds() {
     return this._visiblePeerIds;
   }
+
   set visiblePeerIds(ids: string[]) {
     console.log("visiblePeerIds", ids);
     this._visiblePeerIds = ids;
+  }
+
+  manageSlideConsumers(ids: string[]) {
+    const pretendentsForOn = ids
+      .map((id) => this.remotePeers.find((p) => p.id === id))
+      .filter(Boolean) as ClientRemotePeer[];
+
+    const pretendentsForOf = this.remotePeers.filter(
+      (rp) => !ids.includes(rp.id)
+    );
+
+    const updatedForOn = [] as string[];
+    const updatedForOf = [] as string[];
+    const updatedIds = [] as string[];
+
+    pretendentsForOn.forEach((peer) => {
+      const foundVideoConsumer = peer.consumers.find((c) => c.kind === "video");
+
+      if (foundVideoConsumer && foundVideoConsumer.paused) {
+        foundVideoConsumer.resume();
+        updatedIds.push(peer.id);
+        updatedForOn.push(foundVideoConsumer.id);
+      }
+    });
+
+    pretendentsForOf.forEach((peer) => {
+      const foundVideoConsumer = peer.consumers.find((c) => c.kind === "video");
+
+      if (foundVideoConsumer && !foundVideoConsumer.paused) {
+        foundVideoConsumer.pause();
+        updatedIds.push(peer.id);
+        updatedForOf.push(foundVideoConsumer.id);
+      }
+    });
+
+    if (updatedIds.length > 0) {
+      this.remotePeers = this.remotePeers.map((p) =>
+        updatedIds.includes(p.id) ? { ...p } : p
+      );
+    }
+    if (updatedForOn.length > 0) {
+      this.root.network.apiSend()("consumerResume", {
+        ...this.defaultRoomData,
+        consumerIds: updatedForOn,
+      });
+    }
+    if (updatedForOf.length > 0) {
+      this.root.network.apiSend()("consumerPause", {
+        ...this.defaultRoomData,
+        consumerIds: updatedForOf,
+      });
+    }
   }
 
   private setLocalProducer(produer: AppProducer) {
@@ -457,6 +543,8 @@ class MediasoupClientStore {
         {
           roomId: dataRoom.id,
           name: peerName,
+          camOn: this.root.mediaDevices.camOn,
+          micOn: this.root.mediaDevices.micOn,
         }
       );
 
@@ -474,6 +562,7 @@ class MediasoupClientStore {
         this.roomId = peer.roomId;
         this.peerName = peer.name;
         this.isJoined = peer.isJoined;
+        this.createSelfPeer(peer.id, peer.roomId, peer.name, peer.isJoined);
       });
 
       // Пустой массив
@@ -506,11 +595,14 @@ class MediasoupClientStore {
       // 1 Запрос Rtp Capabilities
       const routerRtpCapabilities = await this.gerRouterRtpCapabilities(roomId);
       // 2 создаем пира
+      // TODO: передавать флаги camOn, micOn
       const { data: dataPeer } = await this.root.network.apiSend()<Peer>(
         "createPeer",
         {
           roomId: roomId,
           name: peerName,
+          camOn: this.root.mediaDevices.camOn,
+          micOn: this.root.mediaDevices.micOn,
         }
       );
 
@@ -537,6 +629,7 @@ class MediasoupClientStore {
           consumers: [],
           mediaStream: new MediaStream(),
         }));
+        this.createSelfPeer(peer.id, peer.roomId, peer.name, peer.isJoined);
       });
 
       // 5 Создание recvtransport
@@ -593,17 +686,19 @@ class MediasoupClientStore {
     await this.consume([clientRemotePeer.id]);
   }
 
-  async endCall() {
-    await this.root.network.apiSend()("endCall", this.defaultRoomData);
-    this.cleanupSession();
-  }
-
   camOf() {
     if (this.videoProducer) {
       this.videoProducer.close();
       this.videoProducer = null;
     }
 
+    if (this.selfPeer) {
+      this.selfPeer = {
+        ...this.selfPeer,
+        mediaStream: new MediaStream(),
+        camOn: false,
+      };
+    }
     return this.root.network.apiSend()("camOf", this.defaultRoomData);
   }
 
@@ -623,6 +718,18 @@ class MediasoupClientStore {
 
     if (!track) {
       throw new Error("camOn: video track not found");
+    }
+
+    if (this.selfPeer && track) {
+      this.selfPeer.mediaStream.getTracks().forEach((t) => {
+        t.stop;
+        this.selfPeer!.mediaStream.removeTrack(t);
+      });
+      this.selfPeer = {
+        ...this.selfPeer,
+        mediaStream: new MediaStream([track]),
+        camOn: true,
+      };
     }
 
     await this.createProducer(track);
@@ -675,6 +782,27 @@ class MediasoupClientStore {
     } catch (err) {
       console.log(err);
     }
+  }
+
+  toogleMic(micOn: boolean) {
+    if (!this.isJoined) return;
+
+    runInAction(() => {
+      if (this.selfPeer) {
+        this.selfPeer = { ...this.selfPeer, micOn };
+      }
+    });
+
+    this.root.network.apiSend()("toogleMic", {
+      ...this.defaultRoomData,
+      micOn,
+    });
+  }
+
+  toogleRemoteMic(peerId: string, micOn: boolean) {
+    this.remotePeers = this.remotePeers.map((p) =>
+      p.id === peerId ? { ...p, micOn } : p
+    );
   }
 
   async startLocalScreenShare(track: MediaStreamTrack) {
@@ -738,12 +866,19 @@ class MediasoupClientStore {
     this.isRemoteScreenActive = true;
   }
 
+  async endCall() {
+    await this.root.network.apiSend()("endCall", this.defaultRoomData);
+    this.cleanupSession();
+  }
+
   cleanupSession() {
     this.isJoined = false;
     this.peerId = undefined;
     this.peerName = undefined;
     this.roomId = undefined;
     this.remotePeers = [];
+
+    this.selfPeer = null;
 
     safeClose(
       this.audioProducer,
