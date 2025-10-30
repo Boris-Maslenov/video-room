@@ -41,6 +41,7 @@ const ActionPanel: FC<ActionPanelProps> = ({
   screenState,
   disabled = {},
 }) => {
+  console.log("ActionPanel", micState, camState);
   return (
     <div className="ActionsPanel">
       <div className="left-item">

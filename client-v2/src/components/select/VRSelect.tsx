@@ -24,11 +24,11 @@ const VRSelect: FC<PropsType> = ({
             <Select.Viewport className="SelectViewport">
               {options.map((o, i) => (
                 <Select.Item
-                  key={i + o.value}
+                  key={i + (o?.value || "__empty__")}
                   className="SelectItem"
-                  value={o.value}
+                  value={o?.value || "__empty__"}
                 >
-                  <Select.ItemText>{o.label}</Select.ItemText>
+                  <Select.ItemText>{o.label || "__empty__"}</Select.ItemText>
                 </Select.Item>
               ))}
             </Select.Viewport>

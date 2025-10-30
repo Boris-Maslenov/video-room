@@ -9,24 +9,22 @@ const NOISE_LEVEL = 0.01;
 const BOOSTER = 10;
 
 export const MicLevel: FC = observer(() => {
-  console.log("MicLevel RENDER");
   const deviseStore = useDevicesStore();
   const track = deviseStore.audioTrack;
 
   const levelElem = useRef<SVGRectElement>(null);
   // создаём аудиоконтекст
   const ctxRef = useRef<AudioContext>(new AudioContext());
-  console.log(ctxRef);
+
   // узел-источник: стрим
   const sourceRef = useRef(
     track && track.readyState !== "ended"
       ? ctxRef.current.createMediaStreamSource(new MediaStream([track.clone()]))
       : undefined
   );
-  console.log(sourceRef);
+
   // узел-анализатор
   const analyserRef = useRef(ctxRef.current.createAnalyser());
-  console.log(sourceRef);
 
   useEffect(() => {
     // присоединяем анализатор к источнику
@@ -65,7 +63,6 @@ export const MicLevel: FC = observer(() => {
 
     return () => {
       try {
-        console.log("clean");
         cancelAnimationFrame(rafId);
         sourceRef.current?.disconnect();
         sourceRef.current = undefined;

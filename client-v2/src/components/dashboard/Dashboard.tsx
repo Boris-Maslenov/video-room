@@ -58,10 +58,7 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
         <Button
           size="large"
           onClick={() => {
-            if (!devicesStore.allMediaDevices.length) {
-              devicesStore.init();
-            }
-
+            devicesStore.init();
             setModalOpen("EnterRoomModal");
           }}
           disabled={!roomId || status !== "online"}

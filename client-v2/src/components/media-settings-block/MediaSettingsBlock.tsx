@@ -14,10 +14,17 @@ const MediaSettingsBlock: FC = () => {
   const camDevices = devicesStore.cams;
   const micOn = devicesStore.micOn;
   const camOn = devicesStore.camOn;
+  const allowMic = devicesStore.allowMic;
+  const allowCam = devicesStore.allowCam;
   const isLoading = devicesStore.isMediaDevicesLoading;
 
   const getOptions = (values: MediaDeviceInfo[]) => {
-    return values.map((v) => ({ label: v.label, value: v.deviceId }));
+    return (
+      values?.map((v) => ({
+        label: v?.label,
+        value: v?.deviceId,
+      })) ?? []
+    );
   };
 
   return (
@@ -57,8 +64,8 @@ const MediaSettingsBlock: FC = () => {
         <div className="Col Col-80">Включить камеру</div>
         <div className="Col Col-20 flex-center-right">
           <VRSwitch
-            disabled={camDevices.length === 0}
-            checked={camOn && camDevices.length > 0}
+            disabled={!allowCam}
+            checked={camOn && allowCam}
             onCheckedChange={(checked) => {
               devicesStore.toggleCam(checked);
             }}
@@ -69,8 +76,8 @@ const MediaSettingsBlock: FC = () => {
         <div className="Col Col-80">Включить микрофон</div>
         <div className="Col Col-20 flex-center-right">
           <VRSwitch
-            disabled={micsDevices.length === 0}
-            checked={micOn && micsDevices.length > 0}
+            disabled={!allowMic}
+            checked={micOn && allowMic}
             onCheckedChange={(checked) => {
               devicesStore.toggleMic(checked);
             }}

@@ -13,35 +13,9 @@ import Modal from "../shared/modal/Modal";
 
 const RootLayout: FC = () => {
   const mediaStore = useMediaSoupStore();
-  const socketStore = useSocketStore();
   const errorStore = useErrorStore();
   const { isJoined } = mediaStore;
   const [roomId] = useParams(ROOM_QUERY_KEY);
-
-  useEffect(() => {
-    socketStore.addListener("peer:closed", (a) =>
-      mediaStore.deleteRemotePeer(a)
-    );
-    socketStore.addListener("peer:ready", (a) => {
-      console.log("peer:ready");
-      mediaStore.addRemotePeer(a);
-    });
-    socketStore.addListener("peer:camOf", (a, b) =>
-      mediaStore.deleteConsumerFromRemotePeer(a, b)
-    );
-    socketStore.addListener("peer:camOn", (a, b) =>
-      mediaStore.addConsumerToRemotePeer(a, b)
-    );
-    socketStore.addListener("peer:screenOn", (remotePeerId, producerId) => {
-      mediaStore.startRemoteScreenShare(remotePeerId, producerId);
-    });
-    socketStore.addListener("peer:screenOf", (remotePeerId, producerId) => {
-      mediaStore.stopRemoteScreenShare(remotePeerId, producerId);
-    });
-    socketStore.addListener("peer:toogleMic", (remotePeerId, micOn) => {
-      mediaStore.toogleRemoteMic(remotePeerId, micOn);
-    });
-  }, []);
 
   return (
     <>
@@ -50,8 +24,7 @@ const RootLayout: FC = () => {
       {errorStore.errorsStack.length > 0 && (
         <Modal
           title="Ошибка"
-          onOpen={(open) => {
-            console.log(open);
+          onOpen={() => {
             errorStore.popError();
           }}
           open={errorStore.errorsStack.length > 0}

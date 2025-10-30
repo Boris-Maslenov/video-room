@@ -133,7 +133,6 @@ class MediasoupClientStore {
   }
 
   set visiblePeerIds(ids: string[]) {
-    console.log("visiblePeerIds", ids);
     this._visiblePeerIds = ids;
   }
 
@@ -176,13 +175,13 @@ class MediasoupClientStore {
       );
     }
     if (updatedForOn.length > 0) {
-      this.root.network.apiSend()("consumerResume", {
+      this.root.network.apiSend("consumerResume", {
         ...this.defaultRoomData,
         consumerIds: updatedForOn,
       });
     }
     if (updatedForOf.length > 0) {
-      this.root.network.apiSend()("consumerPause", {
+      this.root.network.apiSend("consumerPause", {
         ...this.defaultRoomData,
         consumerIds: updatedForOf,
       });
@@ -227,7 +226,7 @@ class MediasoupClientStore {
    * Запрашивает кодеки и RTP-расширения которые поддерживает Router
    */
   async gerRouterRtpCapabilities(roomId: string) {
-    const { data } = await this.root.network.apiSend()<RtpCapabilities>(
+    const { data } = await this.root.network.apiSend<RtpCapabilities>(
       "getRouterRtpCapabilities",
       { roomId }
     );
@@ -263,7 +262,7 @@ class MediasoupClientStore {
       throw new Error("createSendTransport: device not created");
     }
 
-    const { data } = await this.root.network.apiSend()<{
+    const { data } = await this.root.network.apiSend<{
       transportParams: TransportOptions;
     }>("createSendTransport", this.defaultRoomData);
 
@@ -273,7 +272,7 @@ class MediasoupClientStore {
       "connect",
       async ({ dtlsParameters }, callback, errback) => {
         try {
-          await this.root.network.apiSend()("connectSendTransport", {
+          await this.root.network.apiSend("connectSendTransport", {
             dtlsParameters,
             ...this.defaultRoomData,
           });
@@ -292,7 +291,7 @@ class MediasoupClientStore {
       async ({ kind, rtpParameters, appData }, callback, errback) => {
         // appData передаем в sendTransport.produce()
         try {
-          const { data } = await this.root.network.apiSend()<{ id: string }>(
+          const { data } = await this.root.network.apiSend<{ id: string }>(
             "produce",
             {
               kind,
@@ -391,7 +390,7 @@ class MediasoupClientStore {
     peerId: string,
     rtpCapabilities: RtpCapabilities
   ) {
-    const { data } = await this.root.network.apiSend()<{
+    const { data } = await this.root.network.apiSend<{
       remotePeers: RemotePeer[];
       peer: Peer;
     }>("joinRoom", {
@@ -408,7 +407,7 @@ class MediasoupClientStore {
    * Создает транспорт для приема медиа
    */
   private async createRecvTransport() {
-    const { data } = await this.root.network.apiSend()<{
+    const { data } = await this.root.network.apiSend<{
       transportParams: TransportOptions;
     }>("createRecvTransport", this.defaultRoomData);
     this.recvTransport = this.device.createRecvTransport(data.transportParams);
@@ -421,7 +420,7 @@ class MediasoupClientStore {
       "connect",
       async ({ dtlsParameters }, callback, errback) => {
         try {
-          await this.root.network.apiSend()("connectRecvTransport", {
+          await this.root.network.apiSend("connectRecvTransport", {
             dtlsParameters,
             ...this.defaultRoomData,
           });
@@ -436,7 +435,12 @@ class MediasoupClientStore {
     );
 
     this.recvTransport.on("connectionstatechange", (state) => {
-      console.log("recvTransport", state);
+      console.log("recvTransport", state === "failed");
+      switch (state) {
+        case "failed": {
+          this.root.error.setError(`recvTransport state: ${state}`);
+        }
+      }
     });
   }
 
@@ -484,7 +488,7 @@ class MediasoupClientStore {
       await this.createRecvTransport();
     }
 
-    const { data } = await this.root.network.apiSend()<{
+    const { data } = await this.root.network.apiSend<{
       id: string;
       rtpParameters: RtpParameters;
       kind: KindType;
@@ -527,7 +531,7 @@ class MediasoupClientStore {
       await this.root.mediaDevices.init();
       await this.root.mediaDevices.startMediaTracks();
       // 1 создаем пуствую комнату
-      const { data: dataRoom } = await this.root.network.apiSend()<{
+      const { data: dataRoom } = await this.root.network.apiSend<{
         id: string;
         createAt: string;
       }>("createRoom");
@@ -538,7 +542,7 @@ class MediasoupClientStore {
       );
 
       // Не гарантирует в будущем, что пир будет именно в этой комнате. Гарант того, что пир в комнате joinRoom
-      const { data: dataPeer } = await this.root.network.apiSend()<Peer>(
+      const { data: dataPeer } = await this.root.network.apiSend<Peer>(
         "createPeer",
         {
           roomId: dataRoom.id,
@@ -577,7 +581,8 @@ class MediasoupClientStore {
         );
       }
     } catch (err) {
-      this.cleanupSession();
+      this.cleanupMediaSession();
+      this.root.mediaDevices.cleanupDevicesSession();
       if (err instanceof Error) {
         this.root.error.setError(err);
       }
@@ -596,7 +601,7 @@ class MediasoupClientStore {
       const routerRtpCapabilities = await this.gerRouterRtpCapabilities(roomId);
       // 2 создаем пира
       // TODO: передавать флаги camOn, micOn
-      const { data: dataPeer } = await this.root.network.apiSend()<Peer>(
+      const { data: dataPeer } = await this.root.network.apiSend<Peer>(
         "createPeer",
         {
           roomId: roomId,
@@ -646,9 +651,10 @@ class MediasoupClientStore {
         );
       }
 
-      await this.root.network.apiSend()("peerConnected", this.defaultRoomData);
+      await this.root.network.apiSend("peerConnected", this.defaultRoomData);
     } catch (err) {
-      this.cleanupSession();
+      this.cleanupMediaSession();
+      this.root.mediaDevices.cleanupDevicesSession();
       if (err instanceof Error) {
         this.root.error.setError(err);
       }
@@ -699,7 +705,7 @@ class MediasoupClientStore {
         camOn: false,
       };
     }
-    return this.root.network.apiSend()("camOf", this.defaultRoomData);
+    return this.root.network.apiSend("camOf", this.defaultRoomData);
   }
 
   async camOn() {
@@ -733,7 +739,7 @@ class MediasoupClientStore {
     }
 
     await this.createProducer(track);
-    await this.root.network.apiSend()("camOn", this.defaultRoomData);
+    await this.root.network.apiSend("camOn", this.defaultRoomData);
   }
 
   /**
@@ -793,7 +799,7 @@ class MediasoupClientStore {
       }
     });
 
-    this.root.network.apiSend()("toogleMic", {
+    this.root.network.apiSend("toogleMic", {
       ...this.defaultRoomData,
       micOn,
     });
@@ -813,12 +819,13 @@ class MediasoupClientStore {
       await this.createSendTransport();
     }
     await this.createProducer(track, true);
-    await this.root.network.apiSend()("screenOn", this.defaultRoomData);
+    await this.root.network.apiSend("screenOn", this.defaultRoomData);
   }
 
   async stopLocalScreenShare() {
     this.screenProducer?.close();
-    this.root.network.apiSend()("screenOf", this.defaultRoomData);
+    this.screenProducer = null;
+    this.root.network.apiSend("screenOf", this.defaultRoomData);
   }
 
   async startRemoteScreenShare(remotePeerId: string, screenProducerId: string) {
@@ -867,11 +874,12 @@ class MediasoupClientStore {
   }
 
   async endCall() {
-    await this.root.network.apiSend()("endCall", this.defaultRoomData);
-    this.cleanupSession();
+    await this.root.network.apiSend("endCall", this.defaultRoomData);
+    this.root.mediaDevices.cleanupDevicesSession();
+    this.cleanupMediaSession();
   }
 
-  cleanupSession() {
+  cleanupMediaSession() {
     this.isJoined = false;
     this.peerId = undefined;
     this.peerName = undefined;
@@ -889,7 +897,6 @@ class MediasoupClientStore {
     );
 
     this.clearRemoteScreen();
-    this.root.mediaDevices.cleanupSession();
   }
 }
 export default MediasoupClientStore;

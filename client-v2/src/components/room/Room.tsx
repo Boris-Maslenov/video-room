@@ -5,53 +5,30 @@ import {
 } from "../../context/StoresProvider";
 import { observer } from "mobx-react-lite";
 import Participant from "../participant/Participant";
-import { ClientRemotePeer, Source } from "../../stores/MediasoupClientStore";
 import ActionPanel, { ActionTypes } from "../action-panel/ActionPanel";
 import ScreenSharePresentation from "../screen-presentation/ScreenSharePresentation";
 import "./Room.styles.scss";
-import { Producer } from "mediasoup-client/types";
 import MediaSlider from "../media-slider/MediaSlider";
 
 const Room = () => {
-  console.log("RENDER ROOM");
   const devicesStore = useDevicesStore();
   const mediaSoupStore = useMediaSoupStore();
   const selfPeer = mediaSoupStore.selfPeer;
   const remotePeers = mediaSoupStore.remotePeers;
+  const mics = devicesStore.mics;
+  const cams = devicesStore.cams;
+  const allowMic = devicesStore.allowMic;
+  const allowCam = devicesStore.allowCam;
   const isSelfScreenShare = Boolean(devicesStore.screenStream);
   const isRemoteScreenMode = mediaSoupStore.isRemoteScreenActive;
   const screenShareMode = isSelfScreenShare || isRemoteScreenMode;
-  //
   const disabledActions: Partial<Record<ActionTypes, boolean>> = useMemo(() => {
     return {
       screen: isRemoteScreenMode,
+      mic: mics.length === 0 || !allowMic,
+      cam: cams.length === 0 || !allowCam,
     };
-  }, [isRemoteScreenMode]);
-
-  // const getSelfPeer = (): ClientRemotePeer => {
-  //   return {
-  //     id: mediaSoupStore.peerId ?? "",
-  //     roomId: mediaSoupStore.roomId ?? "",
-  //     name: mediaSoupStore.peerName ?? "Борис Масленов",
-  //     micOn: devicesStore.micOn,
-  //     camOn: devicesStore.camOn,
-  //     producersData: (
-  //       [
-  //         mediaSoupStore?.audioProducer,
-  //         mediaSoupStore?.videoProducer,
-  //         mediaSoupStore?.screenProducer,
-  //       ].filter(Boolean) as Producer<{
-  //         source: Source;
-  //       }>[]
-  //     ).map((p) => ({ producerId: p.id, source: p.appData.source })),
-  //     socketId: "",
-  //     isJoined: mediaSoupStore.isJoined,
-  //     consumers: [],
-  //     mediaStream: new MediaStream(
-  //       devicesStore.videoTrack ? [devicesStore.videoTrack] : []
-  //     ),
-  //   };
-  // };
+  }, [isRemoteScreenMode, devicesStore.mics, devicesStore.cams]);
 
   const handlePanelAction = (action: ActionTypes) => {
     switch (action) {
@@ -67,7 +44,6 @@ const Room = () => {
       }
       case "screen": {
         const old = Boolean(devicesStore.screenStream);
-        console.log("1", devicesStore.videoTrack?.readyState);
         devicesStore.toggleScreenShare(!old);
         break;
       }

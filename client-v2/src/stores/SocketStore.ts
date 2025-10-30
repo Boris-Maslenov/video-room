@@ -8,19 +8,22 @@ import {
   ParamsServerEvents,
 } from "../api/api.types";
 import { Socket } from "socket.io-client";
-import { socketPromise, WS_URL } from "../api/api";
+import { socketPromise } from "../api/api";
 import { NetworkPeerStatus } from "./MediasoupClientStore";
+import { WS_IP } from "../config";
 
 class SocketStore {
   root: RootStore;
   private initial: boolean;
   private socket: Socket<ServerEvents, ClientEvents>;
+  apiSend: SocketSendType;
   eventBus: { [K in keyof ServerEvents]+?: ServerEvents[K][] } = {};
   networkStatus: NetworkPeerStatus = "offline";
 
   constructor(root: RootStore) {
     this.root = root;
-    this.socket = io(WS_URL);
+    this.socket = io(WS_IP);
+    this.apiSend = socketPromise(this.socket);
     this.initial = false;
     makeAutoObservable(this, {}, { autoBind: true });
   }
@@ -33,6 +36,7 @@ class SocketStore {
     if (this.initial) {
       return;
     }
+
     this.initial = true;
     this.socket.on("peer:closed", this.handlePeerClosed);
     this.socket.on("peer:ready", this.handlePeerReady);
@@ -45,15 +49,15 @@ class SocketStore {
     this.socket.on("connect", () => {
       this.setNetStatus("online");
     });
+
     this.socket.on("connect_error", () => {
-      console.log("connect_error");
       this.setNetStatus("offline");
-      this.root.mediaSoupClient.cleanupSession();
+      this.root.mediaSoupClient.cleanupMediaSession();
     });
+
     this.socket.on("disconnect", () => {
-      console.log("disconnect");
       this.setNetStatus("offline");
-      this.root.mediaSoupClient.cleanupSession();
+      this.root.mediaSoupClient.cleanupMediaSession();
     });
   }
 
@@ -92,15 +96,20 @@ class SocketStore {
     this.emit("peer:toogleMic", ...args);
   }
 
-  dispose() {
+  cleanupNetworkSession() {
     if (!this.initial) return;
     this.initial = false;
     this.socket.off("peer:closed", this.handlePeerClosed);
     this.socket.off("peer:ready", this.handlePeerReady);
+    this.socket.off("peer:camOf", this.handleCamOf);
+    this.socket.off("peer:camOn", this.handleCamOn);
+    this.socket.off("peer:screenOf", this.handleScreenOf);
+    this.socket.off("peer:screenOn", this.handleScreenOn);
+    this.socket.off("peer:toogleMic", this.handleToogleMic);
     // защита от утечек при HMR
     this.socket.disconnect();
     this.eventBus = {};
-    this.root.mediaSoupClient.cleanupSession();
+    this.root.mediaSoupClient.cleanupMediaSession();
   }
 
   addListener<K extends keyof ServerEvents>(event: K, cb: ServerEvents[K]) {
@@ -110,13 +119,6 @@ class SocketStore {
       this.eventBus[event] = [];
       this.eventBus[event].push(cb);
     }
-  }
-
-  /**
-   * TODO: сделать нормальную типизацию, слиентских событий
-   */
-  apiSend(): SocketSendType {
-    return socketPromise(this.socket);
   }
 }
 

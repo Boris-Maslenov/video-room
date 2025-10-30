@@ -1,5 +1,5 @@
 import { FC, ReactNode, Children, useState } from "react";
-import { Swiper, SwiperSlide, SwiperClass } from "swiper/react";
+import { Swiper, SwiperSlide } from "swiper/react";
 import { Mousewheel, Pagination } from "swiper/modules";
 import { getPeersInActiveSlide } from "../../utils/getPeersInActiveSlide";
 
@@ -8,7 +8,7 @@ type PropsType = {
   onChangeOrUpdateSlide: (num: string[]) => void;
 };
 
-const MAX_ITEMS = 2;
+const MAX_ITEMS = 12;
 
 const getGroups = (
   elemCount: number,
@@ -24,7 +24,7 @@ const getGroups = (
   return result;
 };
 
-const calcMaxItems = (width: number, height: number): number => {
+const calcMaxItems = (width: number): number => {
   if (width <= 538) {
     return 3;
   }
@@ -33,14 +33,13 @@ const calcMaxItems = (width: number, height: number): number => {
 };
 
 const MediaSlider: FC<PropsType> = ({ children, onChangeOrUpdateSlide }) => {
-  console.log("SlidesCalculator");
   const [maxItemsInSlide, setMaxItemsInSlide] = useState(MAX_ITEMS);
   const elementsCount = Children.count(children);
   const childrenArray = Children.toArray(children);
 
   return (
     <Swiper
-      speed={1000}
+      speed={600}
       slidesPerView="auto"
       pagination={{ type: "bullets" }}
       mousewheel={true}
@@ -54,23 +53,16 @@ const MediaSlider: FC<PropsType> = ({ children, onChangeOrUpdateSlide }) => {
           direction: "vertical",
         },
       }}
-      onSlideChangeTransitionStart={(swiper) => {
-        console.log("🚀 Начало перелистывания");
-        console.log("Активный индекс:", swiper.activeIndex, swiper);
-      }}
-      onSlideChangeTransitionEnd={(swiper) => {
-        console.log("✅ Перелистывание завершено");
-        console.log("Новый активный слайд:", swiper.activeIndex, swiper);
-      }}
+      // onSlideChangeTransitionStart={(swiper) => {}}
+      // onSlideChangeTransitionEnd={(swiper) => {}}
       onSlideChange={(s) => {
-        console.log("🚀 onSlideChange", s);
         onChangeOrUpdateSlide(getPeersInActiveSlide(s.activeIndex));
       }}
       onSwiper={(swiper) => {
-        setMaxItemsInSlide(calcMaxItems(swiper.width, swiper.height));
+        setMaxItemsInSlide(calcMaxItems(swiper.width));
 
         const onResize = () => {
-          setMaxItemsInSlide(calcMaxItems(swiper.width, swiper.height));
+          setMaxItemsInSlide(calcMaxItems(swiper.width));
         };
 
         swiper.on("resize", onResize);
