@@ -13,6 +13,7 @@ import MediaSlider from "../media-slider/MediaSlider";
 const Room = () => {
   const devicesStore = useDevicesStore();
   const mediaSoupStore = useMediaSoupStore();
+  const peersCount = mediaSoupStore.peersCount;
   const selfPeer = mediaSoupStore.selfPeer;
   const remotePeers = mediaSoupStore.remotePeers;
   const mics = devicesStore.mics;
@@ -33,18 +34,15 @@ const Room = () => {
   const handlePanelAction = (action: ActionTypes) => {
     switch (action) {
       case "mic": {
-        const old = devicesStore.micOn;
-        devicesStore.toggleMic(!old);
+        devicesStore.toggleMic(!devicesStore.micOn);
         break;
       }
       case "cam": {
-        const old = devicesStore.camOn;
-        devicesStore.toggleCam(!old);
+        devicesStore.toggleCam(!devicesStore.camOn);
         break;
       }
       case "screen": {
-        const old = Boolean(devicesStore.screenStream);
-        devicesStore.toggleScreenShare(!old);
+        devicesStore.toggleScreenShare(!devicesStore.screenStream);
         break;
       }
       case "exit": {
@@ -80,13 +78,13 @@ const Room = () => {
           />
         )}
       </div>
-
       <ActionPanel
         onPanelAction={handlePanelAction}
         micState={devicesStore.micOn}
         camState={devicesStore.camOn}
         screenState={Boolean(devicesStore.screenStream)}
         disabled={disabledActions}
+        peersCount={peersCount}
       />
     </div>
   );

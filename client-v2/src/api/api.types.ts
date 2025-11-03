@@ -36,10 +36,11 @@ export type ParamsServerEvents = {
   "peer:ready": [RemotePeer];
   "peer:closed": [string];
   "peer:camOn": [string, string];
-  "peer:camOf": [string, string];
+  "peer:camOff": [string, string];
   "peer:screenOn": [string, string];
-  "peer:screenOf": [string, string];
-  "peer:toogleMic": [string, boolean];
+  "peer:screenOff": [string, string];
+  "peer:toggleMic": [string, boolean];
+  "room:updateCount": [number];
 };
 
 export type ClientEvents = {};

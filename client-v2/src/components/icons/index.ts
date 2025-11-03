@@ -11,4 +11,5 @@ export { CamOnIcon } from "./CamOnIcon";
 export { MicOffIcon } from "./MicOffIcon";
 export { MicOnIcon } from "./MicOnIcon";
 export { UserIcon } from "./UserIcon";
+export { UsersIcon } from "./UsersIcon";
 export { DotsAnimateIcon } from "./DotsAnimateIcon";

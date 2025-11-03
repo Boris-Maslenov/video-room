@@ -1,11 +1,7 @@
-import { FC, useEffect } from "react";
+import { FC } from "react";
 import Dashboard from "../dashboard/Dashboard";
 import { useParams } from "../../hooks/useParams";
-import {
-  useErrorStore,
-  useMediaSoupStore,
-  useSocketStore,
-} from "../../context/StoresProvider";
+import { useErrorStore, useMediaSoupStore } from "../../context/StoresProvider";
 import { observer } from "mobx-react-lite";
 import Room from "../room/Room";
 import { ROOM_QUERY_KEY } from "../../config";

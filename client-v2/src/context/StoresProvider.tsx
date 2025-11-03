@@ -32,14 +32,19 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
       root.mediaSoupClient.stopRemoteScreenShare(remotePeerId, producerId);
     const onToggleMic = (remotePeerId: string, micOn: boolean) =>
       root.mediaSoupClient.toogleRemoteMic(remotePeerId, micOn);
+    const onUpdateCount = (count: number) => {
+      console.log("onUpdateCount", count);
+      root.mediaSoupClient.peersCount = count;
+    };
 
     root.network.addListener("peer:closed", onPeerClosed);
     root.network.addListener("peer:ready", onPeerReady);
-    root.network.addListener("peer:camOf", onCamOff);
+    root.network.addListener("peer:camOff", onCamOff);
     root.network.addListener("peer:camOn", onCamOn);
     root.network.addListener("peer:screenOn", onScreenOn);
-    root.network.addListener("peer:screenOf", onScreenOff);
-    root.network.addListener("peer:toogleMic", onToggleMic);
+    root.network.addListener("peer:screenOff", onScreenOff);
+    root.network.addListener("peer:toggleMic", onToggleMic);
+    root.network.addListener("room:updateCount", onUpdateCount);
 
     return () => root.network.cleanupNetworkSession();
   }, [root]);

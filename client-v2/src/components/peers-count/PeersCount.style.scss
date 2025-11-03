@@ -1,0 +1,19 @@
+.PeersCount {
+  position: relative;
+  & > span {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 100px;
+    top: -10px;
+    right: 5px;
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: 12px;
+    font-weight: 700;
+  }
+}

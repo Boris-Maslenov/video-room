@@ -40,11 +40,12 @@ class SocketStore {
     this.initial = true;
     this.socket.on("peer:closed", this.handlePeerClosed);
     this.socket.on("peer:ready", this.handlePeerReady);
-    this.socket.on("peer:camOf", this.handleCamOf);
+    this.socket.on("peer:camOff", this.handleCamOff);
     this.socket.on("peer:camOn", this.handleCamOn);
-    this.socket.on("peer:screenOf", this.handleScreenOf);
+    this.socket.on("peer:screenOff", this.handleScreenOff);
     this.socket.on("peer:screenOn", this.handleScreenOn);
-    this.socket.on("peer:toogleMic", this.handleToogleMic);
+    this.socket.on("peer:toggleMic", this.handleToggleMic);
+    this.socket.on("room:updateCount", this.handleUpdateCount);
 
     this.socket.on("connect", () => {
       this.setNetStatus("online");
@@ -76,8 +77,8 @@ class SocketStore {
     this.emit("peer:ready", ...args);
   }
 
-  private handleCamOf(...args: ParamsServerEvents["peer:camOf"]) {
-    this.emit("peer:camOf", ...args);
+  private handleCamOff(...args: ParamsServerEvents["peer:camOff"]) {
+    this.emit("peer:camOff", ...args);
   }
 
   private handleCamOn(...args: ParamsServerEvents["peer:camOn"]) {
@@ -88,12 +89,16 @@ class SocketStore {
     this.emit("peer:screenOn", ...args);
   }
 
-  private handleScreenOf(...args: ParamsServerEvents["peer:screenOf"]) {
-    this.emit("peer:screenOf", ...args);
+  private handleScreenOff(...args: ParamsServerEvents["peer:screenOff"]) {
+    this.emit("peer:screenOff", ...args);
   }
 
-  private handleToogleMic(...args: ParamsServerEvents["peer:toogleMic"]) {
-    this.emit("peer:toogleMic", ...args);
+  private handleToggleMic(...args: ParamsServerEvents["peer:toggleMic"]) {
+    this.emit("peer:toggleMic", ...args);
+  }
+
+  private handleUpdateCount(...args: ParamsServerEvents["room:updateCount"]) {
+    this.emit("room:updateCount", ...args);
   }
 
   cleanupNetworkSession() {
@@ -101,11 +106,12 @@ class SocketStore {
     this.initial = false;
     this.socket.off("peer:closed", this.handlePeerClosed);
     this.socket.off("peer:ready", this.handlePeerReady);
-    this.socket.off("peer:camOf", this.handleCamOf);
+    this.socket.off("peer:camOff", this.handleCamOff);
     this.socket.off("peer:camOn", this.handleCamOn);
-    this.socket.off("peer:screenOf", this.handleScreenOf);
+    this.socket.off("peer:screenOff", this.handleScreenOff);
     this.socket.off("peer:screenOn", this.handleScreenOn);
-    this.socket.off("peer:toogleMic", this.handleToogleMic);
+    this.socket.off("peer:toggleMic", this.handleToggleMic);
+    this.socket.off("room:updateCount", this.handleUpdateCount);
     // защита от утечек при HMR
     this.socket.disconnect();
     this.eventBus = {};

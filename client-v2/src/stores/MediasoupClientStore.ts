@@ -80,6 +80,7 @@ class MediasoupClientStore {
 
   private _selfPeer: ClientRemotePeer | null = null;
   private _visiblePeerIds: string[] = [];
+  private _peersCount: number = 0;
 
   constructor(root: RootStore) {
     this.root = root;
@@ -126,6 +127,14 @@ class MediasoupClientStore {
       consumers: [],
       mediaStream: new MediaStream(videoTrack ? [videoTrack] : []),
     };
+  }
+
+  get peersCount() {
+    return this._peersCount;
+  }
+
+  set peersCount(count: number) {
+    this._peersCount = count;
   }
 
   get visiblePeerIds() {
@@ -321,12 +330,9 @@ class MediasoupClientStore {
 
   /**
    * createProducer
-   * Создает продюсер. Отправка медиа потока в комнату
+   * Отправка медиа потока в комнату
    */
-  private async createProducer(
-    track: MediaStreamTrack,
-    isScreenShare: boolean = false
-  ) {
+  private async send(track: MediaStreamTrack, isScreenShare: boolean = false) {
     if (!this.sendTransport) {
       throw new Error("sendTransport not found");
     }
@@ -340,17 +346,15 @@ class MediasoupClientStore {
 
       this.setLocalProducer(producer);
     } catch (err) {
-      if (err instanceof Error) {
-        throw Error;
-      }
+      throw err;
     }
   }
 
   /**
-   * consume
-   * Создает консюмеры. Подписка на медиа потоки других участников(remotePeers)
+   * recv
+   * Подписка на медиа потоки других участников
    */
-  private async consume(remotePeerIds: string[]) {
+  private async recv(remotePeerIds: string[]) {
     const remoteProducersData = this.remotePeers
       .filter((p) => remotePeerIds.includes(p.id))
       .reduce<{ remotePeerId: string; producerId: string; source: Source }[]>(
@@ -435,10 +439,16 @@ class MediasoupClientStore {
     );
 
     this.recvTransport.on("connectionstatechange", (state) => {
-      console.log("recvTransport", state === "failed");
       switch (state) {
         case "failed": {
+          // если упал приемный транспорт, значит уже не сможем принимать потоки, показываем ошибку и выходим из комнаты
           this.root.error.setError(`recvTransport state: ${state}`);
+          this.endCall();
+          break;
+        }
+        case "disconnected": {
+          this.root.error.setError(`recvTransport state: ${state}`);
+          break;
         }
       }
     });
@@ -569,6 +579,8 @@ class MediasoupClientStore {
         this.createSelfPeer(peer.id, peer.roomId, peer.name, peer.isJoined);
       });
 
+      console.log("this.joinRoom", peer);
+
       // Пустой массив
       this.remotePeers = [];
       await this.createSendTransport();
@@ -576,9 +588,7 @@ class MediasoupClientStore {
       const mediaTracks = this.root.mediaDevices.getMediaTracks();
 
       if (mediaTracks.length) {
-        await Promise.all(
-          mediaTracks.map((track) => this.createProducer(track))
-        );
+        await Promise.all(mediaTracks.map((track) => this.send(track)));
       }
     } catch (err) {
       this.cleanupMediaSession();
@@ -640,15 +650,13 @@ class MediasoupClientStore {
       // 5 Создание recvtransport
       await this.createRecvTransport();
       // 6 Подписка на потоки
-      await this.consume(this.remotePeers.map(({ id }) => id));
+      await this.recv(this.remotePeers.map(({ id }) => id));
       // 7 отправка потоков
       await this.createSendTransport();
       const mediaTracks = this.root.mediaDevices.getMediaTracks();
 
       if (mediaTracks.length) {
-        await Promise.all(
-          mediaTracks.map((track) => this.createProducer(track))
-        );
+        await Promise.all(mediaTracks.map((track) => this.send(track)));
       }
 
       await this.root.network.apiSend("peerConnected", this.defaultRoomData);
@@ -678,6 +686,9 @@ class MediasoupClientStore {
     }
   }
 
+  /**
+   * Добавляет нового пира в комнату
+   */
   async addRemotePeer(remotePeer: RemotePeer) {
     if (!this.recvTransport) {
       await this.createRecvTransport();
@@ -689,7 +700,7 @@ class MediasoupClientStore {
     };
 
     this.remotePeers = [...this.remotePeers, clientRemotePeer];
-    await this.consume([clientRemotePeer.id]);
+    await this.recv([clientRemotePeer.id]);
   }
 
   camOf() {
@@ -738,7 +749,7 @@ class MediasoupClientStore {
       };
     }
 
-    await this.createProducer(track);
+    await this.send(track);
     await this.root.network.apiSend("camOn", this.defaultRoomData);
   }
 
@@ -818,7 +829,7 @@ class MediasoupClientStore {
     if (!this.sendTransport) {
       await this.createSendTransport();
     }
-    await this.createProducer(track, true);
+    await this.send(track, true);
     await this.root.network.apiSend("screenOn", this.defaultRoomData);
   }
 
@@ -886,6 +897,7 @@ class MediasoupClientStore {
     this.roomId = undefined;
     this.remotePeers = [];
 
+    this.selfPeer?.mediaStream.getTracks().forEach((t) => t.stop());
     this.selfPeer = null;
 
     safeClose(
@@ -896,6 +908,12 @@ class MediasoupClientStore {
       ...this.remotePeers.flatMap((remotePeer) => remotePeer.consumers)
     );
 
+    this.audioProducer = null;
+    this.videoProducer = null;
+    this.recvTransport = null;
+    this.sendTransport = null;
+
+    console.log(this);
     this.clearRemoteScreen();
   }
 }

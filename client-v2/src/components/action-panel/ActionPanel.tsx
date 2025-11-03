@@ -9,6 +9,7 @@ import {
   LinkIcon,
   CloseIcon,
 } from "../icons";
+import PeersCount from "../peers-count/PeersCount";
 
 import { MicLevel } from "../mic-level/MicLevel";
 
@@ -29,6 +30,7 @@ type ActionPanelProps = {
   micState: boolean;
   camState: boolean;
   screenState: boolean;
+  peersCount: number;
   disabled: Partial<Record<ActionTypes, boolean>>;
 };
 
@@ -38,10 +40,11 @@ const ActionPanel: FC<ActionPanelProps> = ({
   onPanelAction,
   micState,
   camState,
+  peersCount,
   screenState,
   disabled = {},
 }) => {
-  console.log("ActionPanel", micState, camState);
+  console.log("ActionPanel");
   return (
     <div className="ActionsPanel">
       <div className="left-item">
@@ -51,6 +54,9 @@ const ActionPanel: FC<ActionPanelProps> = ({
           disabled={disabled["shared"]}
         >
           <LinkIcon />
+        </button>
+        <button className="IconButton" disabled={false}>
+          <PeersCount count={peersCount} />
         </button>
       </div>
       <div className="center-item">

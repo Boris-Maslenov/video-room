@@ -19,7 +19,7 @@ export const MicLevel: FC = observer(() => {
   // узел-источник: стрим
   const sourceRef = useRef(
     track && track.readyState !== "ended"
-      ? ctxRef.current.createMediaStreamSource(new MediaStream([track.clone()]))
+      ? ctxRef.current.createMediaStreamSource(new MediaStream([track]))
       : undefined
   );
 

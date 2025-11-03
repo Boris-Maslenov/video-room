@@ -18,6 +18,11 @@ export const safeStop = (...objs: ({ stop: () => void } | null)[]) => {
   }
 };
 
+export const stopStream = (stream: MediaStream | null) => {
+  if (stream) {
+    stream.getTracks().forEach((t) => t.stop());
+  }
+};
 /**
  * Определит есть ли разрешение на камеру и микрофон в системе
  *
@@ -35,6 +40,12 @@ export const getPermissions = async (
     : Promise.reject(false);
 
   const results = await Promise.allSettled([hasMic, hasCam]);
+
+  results.forEach((r) => {
+    if (r.status === "fulfilled") {
+      r.value.getTracks().forEach((t) => t.stop());
+    }
+  });
 
   return {
     mic: results[0].status === "fulfilled",

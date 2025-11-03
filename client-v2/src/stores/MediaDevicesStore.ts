@@ -1,6 +1,6 @@
 import { makeAutoObservable, runInAction, observable } from "mobx";
 import { RootStore } from "./RootStore";
-import { safeStop, getPermissions } from "../utils/mediaUtils";
+import { safeStop, getPermissions, stopStream } from "../utils/mediaUtils";
 /**
  * Стор для работы с медиа устройствами
  */
@@ -82,12 +82,13 @@ class MediaDevicesStore {
       const camEnable = allowCam && hasVideo;
 
       try {
-        initStream = camEnable
-          ? await navigator.mediaDevices.getUserMedia({
-              audio: false,
-              video: camEnable,
-            })
-          : null;
+        initStream =
+          camEnable || micEnable
+            ? await navigator.mediaDevices.getUserMedia({
+                audio: micEnable,
+                video: camEnable,
+              })
+            : null;
       } catch (err) {
         if (err instanceof Error) {
           this.root.error.setError(err);
@@ -104,19 +105,25 @@ class MediaDevicesStore {
         );
         this.cams = this.allMediaDevices.filter((d) => d.kind === "videoinput");
         // Выбор устройств по умолчанию
-        this.selectedMic = micEnable ? "default" : null;
+        // Не опираемся на id default так как его поведение не стабильно в разных браузерах, берем реальный id устройства
+        this.selectedMic = micEnable
+          ? initStream?.getAudioTracks()[0]?.getSettings().deviceId ?? null
+          : null;
         this.selectedCam = camEnable
           ? initStream?.getVideoTracks()[0]?.getSettings().deviceId ?? null
           : null;
       });
 
       // закрываем временный видео стрим
-      this.stopAllTracks(initStream);
+      stopStream(initStream);
+
       initStream = null;
 
       runInAction(() => {
         this.isMediaDevicesLoading = false;
       });
+
+      console.log(this);
     } catch (err) {
       runInAction(() => {
         this.isMediaDevicesLoading = false;
@@ -138,7 +145,9 @@ class MediaDevicesStore {
    */
   async startMediaTracks(): Promise<MediaStreamTrack[]> {
     // на всякий случай закроем все треки
-    this.stopAllTracks(this.stream);
+    stopStream(this.stream);
+    this.videoTrack = null;
+    this.audioTrack = null;
     this.stream = null;
 
     let mediaTracks = [] as MediaStreamTrack[];
@@ -226,11 +235,12 @@ class MediaDevicesStore {
   }
 
   async startCam() {
+    let tmpStream: MediaStream | null = null;
     try {
       const oldTrack = this.videoTrack;
       if (oldTrack || !this.selectedCam) return;
 
-      let tmpStream = await navigator.mediaDevices.getUserMedia({
+      tmpStream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: { deviceId: { exact: this.selectedCam } },
       });
@@ -254,6 +264,10 @@ class MediaDevicesStore {
       runInAction(() => {
         this.camOn = false;
       });
+    } finally {
+      if (tmpStream) {
+        tmpStream.getTracks().forEach((t) => t.stop());
+      }
     }
   }
 
@@ -273,7 +287,7 @@ class MediaDevicesStore {
 
   async toggleScreenShare(on: boolean) {
     if (this.screenStream) {
-      safeStop(...this.screenStream.getTracks());
+      stopStream(this.screenStream);
       this.screenStream = null;
     }
 
@@ -298,14 +312,6 @@ class MediaDevicesStore {
       this.root.mediaSoupClient.startLocalScreenShare(screenTrack);
     } else {
       this.root.mediaSoupClient.stopLocalScreenShare();
-    }
-  }
-
-  stopAllTracks(stream: MediaStream | null) {
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
-      this.audioTrack = null;
-      this.videoTrack = null;
     }
   }
 
@@ -417,8 +423,10 @@ class MediaDevicesStore {
 
   // Остановит все треки и удалит стрим
   cleanupDevicesSession() {
-    this.stopAllTracks(this.stream);
-    this.stopAllTracks(this.screenStream);
+    stopStream(this.stream);
+    stopStream(this.screenStream);
+    this.audioTrack = null;
+    this.videoTrack = null;
     this.screenStream = null;
     this.stream = null;
     this.allMediaDevices = [];
