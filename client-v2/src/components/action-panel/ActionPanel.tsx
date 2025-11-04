@@ -44,7 +44,6 @@ const ActionPanel: FC<ActionPanelProps> = ({
   screenState,
   disabled = {},
 }) => {
-  console.log("ActionPanel");
   return (
     <div className="ActionsPanel">
       <div className="left-item">
