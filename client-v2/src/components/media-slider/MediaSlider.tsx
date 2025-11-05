@@ -1,42 +1,17 @@
-import { FC, ReactNode, Children, useState } from "react";
+import { FC, ReactNode } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Mousewheel, Pagination } from "swiper/modules";
 import { getPeersInActiveSlide } from "../../utils/getPeersInActiveSlide";
+import { ClientRemotePeer } from "../../stores/MediasoupClientStore";
+import Participant from "../participant/Participant";
 
 type PropsType = {
   children?: ReactNode;
-  onChangeOrUpdateSlide: (num: string[]) => void;
+  viewShema: Record<number, ClientRemotePeer[]>;
+  onChangeOrUpdateSlide: (num: number) => void;
 };
 
-const MAX_ITEMS = 12;
-
-const getGroups = (
-  elemCount: number,
-  children: ReactNode[],
-  maxItems = MAX_ITEMS
-) => {
-  if (elemCount === 0) return [];
-
-  const result = [];
-  for (let i = 0; i < elemCount; i += maxItems) {
-    result.push(children.slice(i, i + maxItems));
-  }
-  return result;
-};
-
-const calcMaxItems = (width: number): number => {
-  if (width <= 538) {
-    return 3;
-  }
-
-  return MAX_ITEMS;
-};
-
-const MediaSlider: FC<PropsType> = ({ children, onChangeOrUpdateSlide }) => {
-  const [maxItemsInSlide, setMaxItemsInSlide] = useState(MAX_ITEMS);
-  const elementsCount = Children.count(children);
-  const childrenArray = Children.toArray(children);
-
+const MediaSlider: FC<PropsType> = ({ viewShema, onChangeOrUpdateSlide }) => {
   return (
     <Swiper
       speed={600}
@@ -56,34 +31,33 @@ const MediaSlider: FC<PropsType> = ({ children, onChangeOrUpdateSlide }) => {
       // onSlideChangeTransitionStart={(swiper) => {}}
       // onSlideChangeTransitionEnd={(swiper) => {}}
       onSlideChange={(s) => {
-        onChangeOrUpdateSlide(getPeersInActiveSlide(s.activeIndex));
+        // onChangeOrUpdateSlide(getPeersInActiveSlide(s.activeIndex));
+        onChangeOrUpdateSlide(s.activeIndex);
       }}
       onSwiper={(swiper) => {
-        setMaxItemsInSlide(calcMaxItems(swiper.width));
+        // setMaxItemsInSlide(calcMaxItems(swiper.width));
 
-        const onResize = () => {
-          setMaxItemsInSlide(calcMaxItems(swiper.width));
-        };
+        // const onResize = () => {
+        //   setMaxItemsInSlide(calcMaxItems(swiper.width));
+        // };
 
-        swiper.on("resize", onResize);
+        // swiper.on("resize", onResize);
         swiper.once("destroy", () => {
-          swiper.off("resize", onResize);
+          // swiper.off("resize", onResize);
         });
       }}
       onSlidesLengthChange={(s) => {
-        onChangeOrUpdateSlide(getPeersInActiveSlide(s.activeIndex));
+        // onChangeOrUpdateSlide(getPeersInActiveSlide(s.activeIndex));
+        onChangeOrUpdateSlide(s.activeIndex);
       }}
     >
-      {getGroups(elementsCount, childrenArray, maxItemsInSlide).map(
-        (array, key) => (
-          <SwiperSlide
-            data-group-id={key}
-            key={key}
-            className="MediaSlide"
-            children={array}
-          />
-        )
-      )}
+      {Object.values(viewShema).map((array, key) => (
+        <SwiperSlide data-group-id={key} key={key} className="MediaSlide">
+          {array.map((p) => (
+            <Participant peer={p} key={p.id} />
+          ))}
+        </SwiperSlide>
+      ))}
     </Swiper>
   );
 };

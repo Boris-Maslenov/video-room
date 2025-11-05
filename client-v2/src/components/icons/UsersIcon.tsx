@@ -9,7 +9,7 @@ export const UsersIcon: FC<IconsProps> = ({
     <svg
       stroke="currentColor"
       fill="currentColor"
-      stroke-width="0"
+      strokeWidth="0"
       version="1.1"
       viewBox="0 0 18 16"
       height={width}

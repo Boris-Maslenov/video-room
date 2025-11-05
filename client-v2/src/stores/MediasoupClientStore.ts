@@ -51,6 +51,8 @@ export type ClientRemotePeer = RemotePeer & {
   mediaStream: MediaStream;
 };
 
+export type ViewShema = Record<number, ClientRemotePeer[]>;
+
 const producersMap = {
   audio: "audioProducer",
   video: "videoProducer",
@@ -79,8 +81,9 @@ class MediasoupClientStore {
   isRemoteScreenActive: boolean = false;
 
   private _selfPeer: ClientRemotePeer | null = null;
-  private _visiblePeerIds: string[] = [];
-  private _peersCount: number = 0;
+  // private _visiblePeerIds: string[] = [];
+  // private _peersCount: number = 0;
+  // private _activePeerGroup: number = 0;
 
   constructor(root: RootStore) {
     this.root = root;
@@ -88,7 +91,7 @@ class MediasoupClientStore {
 
     makeAutoObservable(
       this,
-      { remotePeers: observable.ref, visiblePeerIds: computed.struct },
+      { remotePeers: observable.ref },
       { autoBind: true }
     );
   }
@@ -129,23 +132,9 @@ class MediasoupClientStore {
     };
   }
 
-  get peersCount() {
-    return this._peersCount;
-  }
+  manageViewConsumers(activeGroupId: number) {
+    const ids = this.root.viewPeer.getViewShema[activeGroupId].map((p) => p.id);
 
-  set peersCount(count: number) {
-    this._peersCount = count;
-  }
-
-  get visiblePeerIds() {
-    return this._visiblePeerIds;
-  }
-
-  set visiblePeerIds(ids: string[]) {
-    this._visiblePeerIds = ids;
-  }
-
-  manageSlideConsumers(ids: string[]) {
     const pretendentsForOn = ids
       .map((id) => this.remotePeers.find((p) => p.id === id))
       .filter(Boolean) as ClientRemotePeer[];
@@ -154,8 +143,11 @@ class MediasoupClientStore {
       (rp) => !ids.includes(rp.id)
     );
 
+    // консюмеры которые были запущены
     const updatedForOn = [] as string[];
+    // консюмеры которые были остановлены
     const updatedForOf = [] as string[];
+    // пиры которые нужно обновить
     const updatedIds = [] as string[];
 
     pretendentsForOn.forEach((peer) => {
@@ -163,6 +155,7 @@ class MediasoupClientStore {
 
       if (foundVideoConsumer && foundVideoConsumer.paused) {
         foundVideoConsumer.resume();
+        console.log(foundVideoConsumer);
         updatedIds.push(peer.id);
         updatedForOn.push(foundVideoConsumer.id);
       }
@@ -183,12 +176,14 @@ class MediasoupClientStore {
         updatedIds.includes(p.id) ? { ...p } : p
       );
     }
+
     if (updatedForOn.length > 0) {
       this.root.network.apiSend("consumerResume", {
         ...this.defaultRoomData,
         consumerIds: updatedForOn,
       });
     }
+
     if (updatedForOf.length > 0) {
       this.root.network.apiSend("consumerPause", {
         ...this.defaultRoomData,
@@ -703,7 +698,7 @@ class MediasoupClientStore {
     await this.recv([clientRemotePeer.id]);
   }
 
-  camOf() {
+  camOff() {
     if (this.videoProducer) {
       this.videoProducer.close();
       this.videoProducer = null;
@@ -716,7 +711,7 @@ class MediasoupClientStore {
         camOn: false,
       };
     }
-    return this.root.network.apiSend("camOf", this.defaultRoomData);
+    return this.root.network.apiSend("camOff", this.defaultRoomData);
   }
 
   async camOn() {
@@ -757,6 +752,7 @@ class MediasoupClientStore {
    * Удаленный абонент выключил продюсер, делаем отписку соответствующего консюмера
    */
   deleteConsumerFromRemotePeer(peerId: string, produserId: string) {
+    console.log("deleteConsumerFromRemotePeer", peerId, produserId);
     this.remotePeers = this.remotePeers.map((p) => {
       if (p.id === peerId) {
         const foundConsumer = p.consumers.find(
@@ -836,7 +832,7 @@ class MediasoupClientStore {
   async stopLocalScreenShare() {
     this.screenProducer?.close();
     this.screenProducer = null;
-    this.root.network.apiSend("screenOf", this.defaultRoomData);
+    this.root.network.apiSend("screenOff", this.defaultRoomData);
   }
 
   async startRemoteScreenShare(remotePeerId: string, screenProducerId: string) {

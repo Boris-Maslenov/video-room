@@ -33,8 +33,7 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
     const onToggleMic = (remotePeerId: string, micOn: boolean) =>
       root.mediaSoupClient.toogleRemoteMic(remotePeerId, micOn);
     const onUpdateCount = (count: number) => {
-      console.log("onUpdateCount", count);
-      root.mediaSoupClient.peersCount = count;
+      root.viewPeer.peersCount = count;
     };
 
     root.network.addListener("peer:closed", onPeerClosed);
@@ -82,4 +81,12 @@ export const useErrorStore = () => {
     throw new Error(errorMesage);
   }
   return root.error;
+};
+
+export const useViewPeerStore = () => {
+  const root = useContext(Ctx);
+  if (!root) {
+    throw new Error(errorMesage);
+  }
+  return root.viewPeer;
 };

@@ -1,10 +1,10 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
   useDevicesStore,
   useMediaSoupStore,
+  useViewPeerStore,
 } from "../../context/StoresProvider";
 import { observer } from "mobx-react-lite";
-import Participant from "../participant/Participant";
 import ActionPanel, { ActionTypes } from "../action-panel/ActionPanel";
 import ScreenSharePresentation from "../screen-presentation/ScreenSharePresentation";
 import "./Room.styles.scss";
@@ -13,9 +13,7 @@ import MediaSlider from "../media-slider/MediaSlider";
 const Room = () => {
   const devicesStore = useDevicesStore();
   const mediaSoupStore = useMediaSoupStore();
-  const peersCount = mediaSoupStore.peersCount;
-  const selfPeer = mediaSoupStore.selfPeer;
-  const remotePeers = mediaSoupStore.remotePeers;
+  const viewPeer = useViewPeerStore();
   const mics = devicesStore.mics;
   const cams = devicesStore.cams;
   const allowMic = devicesStore.allowMic;
@@ -23,6 +21,9 @@ const Room = () => {
   const isSelfScreenShare = Boolean(devicesStore.screenStream);
   const isRemoteScreenMode = mediaSoupStore.isRemoteScreenActive;
   const screenShareMode = isSelfScreenShare || isRemoteScreenMode;
+  const peersCount = viewPeer.peersCount;
+  const viewShema = viewPeer.getViewShema;
+  const activeGroup = viewPeer.activePeerGroup;
   const disabledActions: Partial<Record<ActionTypes, boolean>> = useMemo(() => {
     return {
       screen: isRemoteScreenMode,
@@ -55,19 +56,21 @@ const Room = () => {
     }
   };
 
-  const changeOrUpdateSlideHandle = useCallback((ids: string[]) => {
-    mediaSoupStore.manageSlideConsumers(ids);
+  useEffect(() => {
+    mediaSoupStore.manageViewConsumers(activeGroup);
+  }, [activeGroup]);
+
+  const changeOrUpdateSlideHandle = useCallback((group: number) => {
+    viewPeer.activePeerGroup = group;
   }, []);
 
   return (
     <div className="Room">
       <div className="MediaCanvas">
-        <MediaSlider onChangeOrUpdateSlide={changeOrUpdateSlideHandle}>
-          {selfPeer && <Participant key={selfPeer.id} peer={selfPeer} />}
-          {remotePeers.map((p) => (
-            <Participant key={p.id} peer={p} />
-          ))}
-        </MediaSlider>
+        <MediaSlider
+          viewShema={viewShema}
+          onChangeOrUpdateSlide={changeOrUpdateSlideHandle}
+        />
         {screenShareMode && (
           <ScreenSharePresentation
             stream={

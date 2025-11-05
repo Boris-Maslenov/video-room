@@ -279,7 +279,7 @@ class MediaDevicesStore {
       track.stop();
       this.videoTrack = null;
       this.stream?.removeTrack(track);
-      this.root.mediaSoupClient.camOf();
+      this.root.mediaSoupClient.camOff();
     } catch (err) {
       console.log(err);
     }
@@ -386,7 +386,7 @@ class MediaDevicesStore {
           this.cams = [];
           this.allowCam = false;
           // трек никогда не возобновится, выключаем камеру
-          this.root.mediaSoupClient.camOf();
+          this.root.mediaSoupClient.camOff();
         }
 
         if (type === "video" && isScreenTrack) {
