@@ -216,7 +216,7 @@ class MediaDevicesStore {
         this.audioTrack.enabled = on;
       }
       this.micOn = on;
-      this.root.mediaSoupClient.toogleMic(on);
+      this.root.mediaSoupClient.toggleMic(on);
     });
   }
 
@@ -377,7 +377,7 @@ class MediaDevicesStore {
           this.mics = [];
           this.allowMic = false;
           // трек никогда не возобновится, выключаем микрофон
-          this.root.mediaSoupClient.toogleMic(false);
+          this.root.mediaSoupClient.toggleMic(false);
         }
 
         if (type === "video" && !isScreenTrack) {

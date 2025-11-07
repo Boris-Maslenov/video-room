@@ -31,7 +31,7 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
     const onScreenOff = (remotePeerId: string, producerId: string) =>
       root.mediaSoupClient.stopRemoteScreenShare(remotePeerId, producerId);
     const onToggleMic = (remotePeerId: string, micOn: boolean) =>
-      root.mediaSoupClient.toogleRemoteMic(remotePeerId, micOn);
+      root.mediaSoupClient.toggleRemoteMic(remotePeerId, micOn);
     const onUpdateCount = (count: number) => {
       root.viewPeer.peersCount = count;
     };

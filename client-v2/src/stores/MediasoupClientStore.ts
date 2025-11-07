@@ -1,4 +1,4 @@
-import { makeAutoObservable, observable, runInAction, computed } from "mobx";
+import { makeAutoObservable, observable, runInAction } from "mobx";
 import { RootStore } from "./RootStore";
 import { Device } from "mediasoup-client";
 import type {
@@ -797,7 +797,7 @@ class MediasoupClientStore {
     }
   }
 
-  toogleMic(micOn: boolean) {
+  toggleMic(micOn: boolean) {
     if (!this.isJoined) return;
 
     runInAction(() => {
@@ -806,13 +806,13 @@ class MediasoupClientStore {
       }
     });
 
-    this.root.network.apiSend("toogleMic", {
+    this.root.network.apiSend("toggleMic", {
       ...this.defaultRoomData,
       micOn,
     });
   }
 
-  toogleRemoteMic(peerId: string, micOn: boolean) {
+  toggleRemoteMic(peerId: string, micOn: boolean) {
     this.remotePeers = this.remotePeers.map((p) =>
       p.id === peerId ? { ...p, micOn } : p
     );

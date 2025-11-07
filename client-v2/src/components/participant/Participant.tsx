@@ -24,6 +24,7 @@ const Participant: FC<{ peer: ClientRemotePeer }> = memo(({ peer }) => {
     }
   }, [stream]);
 
+  // TODO: дожидаться так же первого кадра и при вкл камеры
   useEffect(() => {
     if (!mediaElRef.current) {
       return;
