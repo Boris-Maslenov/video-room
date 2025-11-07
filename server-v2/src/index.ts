@@ -3,6 +3,7 @@ import http from "http";
 import { WS_PORT } from "./config";
 import { createSocketRouter } from "./socketRoutes";
 import { log } from "./utils/dataUtils";
+import { createRoomService } from "./services/room.service";
 
 const server = http.createServer();
 
@@ -12,7 +13,8 @@ const socketio = new Server(server, {
   },
 });
 
-server.listen(WS_PORT, () => {
+server.listen(WS_PORT, "0.0.0.0", async () => {
   createSocketRouter(socketio);
-  log(`WS Сервер успешно запущен на ${WS_PORT} порту`, "blue");
+  await createRoomService();
+  log(`WS Сервер успешно запустился на ${WS_PORT} порту`, "blue");
 });

@@ -17,16 +17,25 @@ export type TransportParams = {
 
 type ReturnType = { transportParams: TransportParams; transport: Transport };
 
+const local = [
+  {
+    ip: "192.168.0.106",
+    announcedIp: "192.168.0.106",
+  },
+];
+
+// const vps = [
+//   {
+//     ip: "0.0.0.0",
+//     announcedIp: "217.114.8.81",
+//   },
+// ];
+
 export async function createWebRtcTransport(
   router: Router
 ): Promise<ReturnType> {
   const transport = await router.createWebRtcTransport({
-    listenIps: [
-      {
-        ip: "127.0.0.1",
-        // announcedIp: "192.168.0.103",
-      },
-    ],
+    listenIps: local,
     enableUdp: true,
     enableTcp: true,
     preferUdp: true,

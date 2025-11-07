@@ -1,5 +1,12 @@
 import util from "util";
+import { getRoom, getPeer } from "../models/room";
+import { COLORS } from "../config";
 
+type ColorName = keyof typeof COLORS;
+
+/**
+ * Возьмет только переданные ключи из обьекта. Ключи передаются массивом
+ */
 export const pick = <T extends {}, K extends keyof T>(
   obj: T,
   keys: K[]
@@ -14,30 +21,18 @@ export const pick = <T extends {}, K extends keyof T>(
   return result;
 };
 
-var colors = {
-  red: "\x1b[31m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  blue: "\x1b[34m",
-  magenta: "\x1b[35m", // фиолетовый
-  cyan: "\x1b[36m", // голубой
-  reset: "\x1b[0m", // Сброс цвета
-};
-
-type ColorName = keyof typeof colors;
-
-// chalk
+// chalk вывод в консоль зветного текста
 export const log = (...args: any[] | [...any, ColorName]) => {
-  const COLORS = Object.keys(colors);
+  const colors = Object.keys(COLORS);
   const foundColor = args.at(-1) as ColorName;
 
-  if (COLORS.includes(foundColor)) {
+  if (colors.includes(foundColor)) {
     return console.log(
       ...args.slice(0, -1).map(
         (arg) =>
-          `${colors[foundColor]}${util.inspect(arg, {
+          `${COLORS[foundColor]}${util.inspect(arg, {
             depth: 10,
-          })}${colors.reset}`
+          })}${COLORS.reset}`
       )
     );
   }
@@ -48,3 +43,28 @@ export const log = (...args: any[] | [...any, ColorName]) => {
 };
 
 export const logError = (...args: any[]) => log(...args, "red");
+
+/**
+ * Вернет комнату и пира
+ */
+export const getDefaultRoomData = (
+  peerId: string,
+  roomId: string,
+  context = "defaultRoomData"
+) => {
+  if (!peerId || !roomId) {
+    throw new Error(`${context} error: arguments not found`);
+  }
+  const peer = getPeer(roomId, peerId);
+  const room = getRoom(roomId);
+
+  if (!peer) {
+    throw new Error(`${context} error: peer not found`);
+  }
+
+  if (!room) {
+    throw new Error(`${context} error: room not found`);
+  }
+
+  return { peer, room };
+};

@@ -1,17 +1,16 @@
 import * as mediasoup from "mediasoup";
-import { mediaCodecs } from "../config";
+import { mediaCodecs, ROOM_ID } from "../config";
 import { Room, Peer } from "../types";
 import { rooms } from "../data/rooms";
+import { Producer } from "mediasoup/node/lib/ProducerTypes";
 
 /**
  * Coздает новую комнату c собственным роутером и воркером
  */
-
 export const createRoom = async (): Promise<Room> => {
   try {
     const worker = await mediasoup.createWorker();
     const router = await worker.createRouter({ mediaCodecs });
-    const ROOM_ID = "0";
 
     return {
       id: ROOM_ID,
@@ -19,6 +18,7 @@ export const createRoom = async (): Promise<Room> => {
       createdAt: new Date(),
       worker,
       router,
+      consumers: [],
     };
   } catch (err) {
     throw err;
@@ -28,7 +28,6 @@ export const createRoom = async (): Promise<Room> => {
 /**
  * Возвращает комнату
  */
-
 export const getRoom = (id: string) => {
   if (!rooms.has(id)) {
     throw new Error(`getRoom: Комната ${id} не найдена`);
@@ -48,7 +47,6 @@ export const updateRoom = (room: Room) => {
 /**
  * Получить пира
  */
-
 export const getPeer = (roomId: string, peerId: string): Peer => {
   const room = getRoom(roomId);
   const foundPeer = room.peers.find(({ id }) => id === peerId);
@@ -59,9 +57,16 @@ export const getPeer = (roomId: string, peerId: string): Peer => {
 };
 
 /**
+ * Найти пира поего soscketId
+ */
+export const findPeerBySocketId = (socketId: string): Peer | undefined => {
+  const allPeers = Array.from(rooms.values()).flatMap((r) => r.peers);
+  return allPeers.find((p) => p.socketId === socketId);
+};
+
+/**
  * Добавление пира в комнату
  */
-
 export const addPeer = (roomId: string, peer: Peer) => {
   const room = getRoom(roomId);
   room.peers = room.peers.concat(peer);
@@ -70,7 +75,6 @@ export const addPeer = (roomId: string, peer: Peer) => {
 /**
  * Обновление пира в комнате
  */
-
 export const updatePeer = (roomId: string, peer: Peer) => {
   const room = getRoom(roomId);
   const peerIndex = room.peers.findIndex(({ id }) => peer.id === id);
@@ -80,8 +84,40 @@ export const updatePeer = (roomId: string, peer: Peer) => {
 /**
  * Удаление пира из комнаты
  */
-
 export const deletePeer = (roomId: string, peerId: string) => {
   const room = getRoom(roomId);
   room.peers = room.peers.filter(({ id }) => peerId !== id);
+};
+
+/**
+ * Вернет всех продюсеров в комнате
+ */
+export const getAllProducers = (roomId: string): Producer[] => {
+  const room = getRoom(roomId);
+  return room.peers.reduce((acc, cur) => {
+    return acc.concat(cur.audioProducer, cur.videoProducer);
+  }, []);
+};
+
+/**
+ * Поиск продюсера по id, когда неизвестно к какому пиру он принадлежит
+ */
+export const findProducer = (
+  roomId: string,
+  producerId: string
+): Producer | null => {
+  const room = getRoom(roomId);
+  let result = null;
+
+  for (const peer of room.peers) {
+    const found = [peer.audioProducer, peer.videoProducer].find(
+      ({ id }) => id === producerId
+    );
+    if (found) {
+      result = found;
+      break;
+    }
+  }
+
+  return result;
 };

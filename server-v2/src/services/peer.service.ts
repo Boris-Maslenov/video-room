@@ -6,9 +6,11 @@ export const createPeerService = (
   roomId: string,
   name: string,
   socketId: string,
-  isOwner: boolean
+  isOwner: boolean,
+  micOn: boolean,
+  camOn: boolean
 ): Peer => {
-  const peer = createPeer(roomId, name, socketId, isOwner);
+  const peer = createPeer(roomId, name, socketId, isOwner, micOn, camOn);
   const peers = getRoom(roomId).peers;
 
   if (peers.find((val) => val.id === peer.id)) {
