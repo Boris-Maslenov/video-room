@@ -47,8 +47,9 @@ export type RemotePeer = Peer & {
 };
 
 export type ClientRemotePeer = RemotePeer & {
-  consumers: Consumer[];
+  consumers: Consumer<{ peerId: string; source: Source }>[];
   mediaStream: MediaStream;
+  isSelf?: boolean;
 };
 
 export type ViewShema = Record<number, ClientRemotePeer[]>;
@@ -129,18 +130,16 @@ class MediasoupClientStore {
       isJoined,
       consumers: [],
       mediaStream: new MediaStream(videoTrack ? [videoTrack] : []),
+      isSelf: true,
     };
   }
 
   manageViewConsumers(activeGroupId: number) {
     const ids = this.root.viewPeer.getViewShema[activeGroupId].map((p) => p.id);
 
-    const pretendentsForOn = ids
-      .map((id) => this.remotePeers.find((p) => p.id === id))
-      .filter(Boolean) as ClientRemotePeer[];
-
+    const pretendentsForOn = this.remotePeers.filter((p) => ids.includes(p.id));
     const pretendentsForOf = this.remotePeers.filter(
-      (rp) => !ids.includes(rp.id)
+      (p) => !ids.includes(p.id)
     );
 
     // консюмеры которые были запущены
@@ -152,22 +151,22 @@ class MediasoupClientStore {
 
     pretendentsForOn.forEach((peer) => {
       const foundVideoConsumer = peer.consumers.find((c) => c.kind === "video");
-
-      if (foundVideoConsumer && foundVideoConsumer.paused) {
+      // Запускаем все которые в области просмотра
+      if (foundVideoConsumer) {
         foundVideoConsumer.resume();
         console.log(foundVideoConsumer);
-        updatedIds.push(peer.id);
         updatedForOn.push(foundVideoConsumer.id);
+        updatedIds.push(peer.id);
       }
     });
 
     pretendentsForOf.forEach((peer) => {
       const foundVideoConsumer = peer.consumers.find((c) => c.kind === "video");
-
+      // Останавливаем только активные консюмеры
       if (foundVideoConsumer && !foundVideoConsumer.paused) {
         foundVideoConsumer.pause();
-        updatedIds.push(peer.id);
         updatedForOf.push(foundVideoConsumer.id);
+        updatedIds.push(peer.id);
       }
     });
 
@@ -176,6 +175,10 @@ class MediasoupClientStore {
         updatedIds.includes(p.id) ? { ...p } : p
       );
     }
+
+    // this.remotePeers = this.remotePeers = this.remotePeers.map((p) => ({
+    //   ...p,
+    // }));
 
     if (updatedForOn.length > 0) {
       this.root.network.apiSend("consumerResume", {
@@ -350,20 +353,28 @@ class MediasoupClientStore {
    * Подписка на медиа потоки других участников
    */
   private async recv(remotePeerIds: string[]) {
+    const visiblyPeerIds = this.root.viewPeer.getVisiblePeerIds();
+
     const remoteProducersData = this.remotePeers
       .filter((p) => remotePeerIds.includes(p.id))
-      .reduce<{ remotePeerId: string; producerId: string; source: Source }[]>(
-        (acc, cur) => {
-          const res = cur.producersData.map((val) => ({
-            remotePeerId: cur.id,
-            producerId: val.producerId,
-            source: val.source,
-          }));
-          acc.push(...res);
-          return acc;
-        },
-        []
-      );
+      .reduce<
+        {
+          remotePeerId: string;
+          producerId: string;
+          source: Source;
+          paused: boolean;
+        }[]
+      >((acc, cur) => {
+        const res = cur.producersData.map((val) => ({
+          remotePeerId: cur.id,
+          producerId: val.producerId,
+          source: val.source,
+          // если пир не в зоне видимоти, то видео консюмер ставим на паузу
+          paused: val.source === "video" && !visiblyPeerIds.includes(cur.id),
+        }));
+        acc.push(...res);
+        return acc;
+      }, []);
 
     const { roomId, peerId } = this.defaultRoomData;
 
@@ -374,7 +385,8 @@ class MediasoupClientStore {
           peerId,
           p.remotePeerId,
           p.producerId,
-          p.source === "screen"
+          p.source === "screen",
+          p.paused
         )
       )
     );
@@ -453,7 +465,10 @@ class MediasoupClientStore {
    * addRemoteConsumer
    * Добавляет консюмер к пиру
    */
-  private async addRemoteConsumer(remotePeerId: string, consumer: Consumer) {
+  private async addRemoteConsumer(
+    remotePeerId: string,
+    consumer: Consumer<{ source: Source; peerId: string }>
+  ) {
     this.remotePeers = this.remotePeers.map((p) => {
       if (p.id !== remotePeerId) return p;
 
@@ -487,7 +502,8 @@ class MediasoupClientStore {
     localPeerId: string,
     remotePeerId: string,
     producerId: string,
-    isScreenShare: boolean = false
+    isScreenShare: boolean = false,
+    paused: boolean = false
   ) {
     if (!this.recvTransport) {
       await this.createRecvTransport();
@@ -503,20 +519,28 @@ class MediasoupClientStore {
       producerId,
       roomId,
       peerId: localPeerId,
+      paused,
     });
 
     if (!this.recvTransport) {
       throw new Error(`Create consumer: recvTransport not found`);
     }
 
-    const consumer: Consumer<{ source: "screen" | "video" | "audio" }> =
-      await this.recvTransport.consume({
-        ...data,
-        appData: {
-          source: isScreenShare ? "screen" : data.kind,
-          peerId: remotePeerId,
-        },
-      });
+    const consumer: Consumer<{
+      source: "screen" | "video" | "audio";
+      peerId: string;
+    }> = await this.recvTransport.consume({
+      ...data,
+      appData: {
+        source: isScreenShare ? "screen" : data.kind,
+        peerId: remotePeerId,
+      },
+    });
+
+    // Для синхронизации состояния вручную ставим клиентский консюмер на паузу
+    if (paused) {
+      consumer.pause();
+    }
 
     if (isScreenShare) {
       this.addRemoteScreenConsumer(consumer);
@@ -696,6 +720,8 @@ class MediasoupClientStore {
 
     this.remotePeers = [...this.remotePeers, clientRemotePeer];
     await this.recv([clientRemotePeer.id]);
+
+    console.log(this.remotePeers);
   }
 
   camOff() {
@@ -786,11 +812,15 @@ class MediasoupClientStore {
         throw new Error("addConsumerToRemotePeer error");
       }
 
+      const visibilityPeerIds = this.root.viewPeer.getVisiblePeerIds();
+
       await this.createConsumer(
         this.roomId,
         this.peerId,
         remotePeerId,
-        producerId
+        producerId,
+        false,
+        !visibilityPeerIds.includes(remotePeerId)
       );
     } catch (err) {
       console.log(err);

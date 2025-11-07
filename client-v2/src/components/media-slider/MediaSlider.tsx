@@ -1,7 +1,6 @@
 import { FC, ReactNode } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Mousewheel, Pagination } from "swiper/modules";
-import { getPeersInActiveSlide } from "../../utils/getPeersInActiveSlide";
 import { ClientRemotePeer } from "../../stores/MediasoupClientStore";
 import Participant from "../participant/Participant";
 

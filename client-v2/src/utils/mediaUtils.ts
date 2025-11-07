@@ -156,3 +156,7 @@ export const waitForFirstNewFrame = (
     }, pollIntervalMs);
   });
 };
+
+export const checkTrackActive = (track: MediaStreamTrack): boolean => {
+  return Boolean(track && track.readyState === "live" && track.muted === false);
+};

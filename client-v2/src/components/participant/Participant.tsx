@@ -6,16 +6,29 @@ import MediaRenderer from "../mediaRenderer/MediaRenderer";
 import classNames from "classnames";
 import ParticipantInfo from "./ParticipantInfo";
 import { waitForFirstNewFrame } from "../../utils/mediaUtils";
+import Loader from "../shared/loader/Loader";
 
 const Participant: FC<{ peer: ClientRemotePeer }> = memo(({ peer }) => {
-  const stream = peer.mediaStream;
-  const videoTrack = peer.mediaStream.getVideoTracks()[0];
-  const videoConsumer = peer.consumers.find((c) => c.kind === "video");
-  const videoConsumerIsPause = videoConsumer?.paused;
-  const isVideoActive = videoTrack && videoConsumer?.paused !== true;
-  const [isVideoReady, setIsVideoReady] = useState(false);
-
   const mediaElRef = useRef<HTMLVideoElement>(null);
+  const stream = peer.mediaStream;
+  const isSelf = !!peer.isSelf;
+  const videoTrack = stream.getVideoTracks()[0];
+  const videoConsumer = peer.consumers.find(
+    (c) => c.appData.source === "video"
+  );
+  const videoConsumerIsPaused = videoConsumer?.paused === true;
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+
+  const isVideoEnabled =
+    videoTrack &&
+    videoConsumer &&
+    !videoConsumerIsPaused &&
+    isVideoLoaded &&
+    !isVideoLoading;
+
+  const isViewVideo = isSelf ? videoTrack : isVideoEnabled;
+  const isViewLoader = !isSelf && isVideoLoading;
 
   useEffect(() => {
     if (mediaElRef.current && stream) {
@@ -24,29 +37,38 @@ const Participant: FC<{ peer: ClientRemotePeer }> = memo(({ peer }) => {
     }
   }, [stream]);
 
-  // TODO: дожидаться так же первого кадра и при вкл камеры
+  // если видео трека нет, то устанавливаем IsVideoLoaded = false
   useEffect(() => {
-    if (!mediaElRef.current) {
-      return;
+    if (!videoTrack) {
+      setIsVideoLoaded(false);
     }
+  }, [videoTrack]);
 
-    if (videoConsumerIsPause) {
-      setIsVideoReady(false);
+  // дожидаемся первого кадра перед показои видео
+  useEffect(() => {
+    if (videoConsumerIsPaused || !videoConsumer) {
+      setIsVideoLoaded(false);
     } else {
-      waitForFirstNewFrame(mediaElRef.current!, {}).then(() => {
-        setIsVideoReady(true);
-      });
+      setIsVideoLoading(true);
+      mediaElRef.current &&
+        waitForFirstNewFrame(mediaElRef.current, {})
+          .then(() => {
+            setIsVideoLoaded(true);
+          })
+          .finally(() => {
+            setIsVideoLoading(false);
+          });
     }
-  }, [videoConsumerIsPause]);
+  }, [videoConsumerIsPaused, videoConsumer]);
 
   return (
     <div
       data-peer-id={peer.id}
       className={classNames("Participant", {
-        "video-active": isVideoActive && isVideoReady,
+        "video-active": isViewVideo,
       })}
     >
-      <ParticipantLabel />
+      {isViewLoader ? <Loader /> : <ParticipantLabel />}
       <MediaRenderer ref={mediaElRef} />
       <ParticipantInfo name={peer.name} micState={peer.micOn} />
     </div>
