@@ -10,6 +10,8 @@ import ScreenSharePresentation from "../screen-presentation/ScreenSharePresentat
 import "./Room.styles.scss";
 import MediaSlider from "../media-slider/MediaSlider";
 
+import { MAX_PEERS_IN_SLIDE } from "../../config";
+
 const Room = () => {
   const devicesStore = useDevicesStore();
   const mediaSoupStore = useMediaSoupStore();
@@ -64,12 +66,28 @@ const Room = () => {
     viewPeer.activePeerGroup = group;
   }, []);
 
+  const getMaxVisiblePeers = (width: number, height: number): number => {
+    switch (true) {
+      case width <= 538: {
+        return 3;
+      }
+
+      default: {
+        return MAX_PEERS_IN_SLIDE;
+      }
+    }
+  };
+
   return (
     <div className="Room">
       <div className="MediaCanvas">
         <MediaSlider
           viewShema={viewShema}
           onChangeOrUpdateSlide={changeOrUpdateSlideHandle}
+          onResize={(width, height) => {
+            console.log(width, height);
+            viewPeer.maxPeersInSlide = getMaxVisiblePeers(width, height);
+          }}
         />
         {screenShareMode && (
           <ScreenSharePresentation

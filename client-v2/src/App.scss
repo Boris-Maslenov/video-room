@@ -48,3 +48,36 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+.Col {
+  flex: 0 0 auto;
+  max-width: 100%;
+  &.Col-20 {
+    width: 20%;
+  }
+  &.Col-30 {
+    width: 30%;
+  }
+  &.Col-40 {
+    width: 40%;
+  }
+  &.Col-50 {
+    width: 50%;
+  }
+  &.Col-60 {
+    width: 60%;
+  }
+  &.Col-70 {
+    width: 70%;
+  }
+  &.Col-80 {
+    width: 80%;
+  }
+}
+
+.TextEllipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
+}

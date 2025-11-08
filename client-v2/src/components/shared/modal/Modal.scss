@@ -53,8 +53,20 @@
   height: 16px;
   cursor: pointer;
 }
+
 .fields-container {
   margin: 25px 0;
+}
+
+@media (max-width: 578px) {
+  .DialogActions {
+    justify-content: space-between;
+    & > * {
+      flex: 1 0 0%;
+      width: 100%;
+      min-width: 0 !important;
+    }
+  }
 }
 
 @keyframes overlayShow {

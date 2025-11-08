@@ -44,6 +44,7 @@
 @media (max-width: 578px) {
   .MediaSlide.swiper-slide {
     grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, 1fr);
   }
   .MediaSlider.swiper {
     padding-right: 0;

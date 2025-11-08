@@ -8,14 +8,20 @@ type PropsType = {
   children?: ReactNode;
   viewShema: Record<number, ClientRemotePeer[]>;
   onChangeOrUpdateSlide: (num: number) => void;
+  onResize: (width: number, height: number) => void;
 };
 
-const MediaSlider: FC<PropsType> = ({ viewShema, onChangeOrUpdateSlide }) => {
+const MediaSlider: FC<PropsType> = ({
+  viewShema,
+  onChangeOrUpdateSlide,
+  onResize,
+}) => {
   return (
     <Swiper
       speed={600}
       slidesPerView="auto"
       pagination={{ type: "bullets" }}
+      spaceBetween={10}
       mousewheel={true}
       modules={[Mousewheel, Pagination]}
       className="MediaSlider"
@@ -23,30 +29,22 @@ const MediaSlider: FC<PropsType> = ({ viewShema, onChangeOrUpdateSlide }) => {
       direction="vertical"
       breakpoints={{
         578: {
-          pagination: { type: "bullets" },
-          direction: "vertical",
+          spaceBetween: 0,
         },
       }}
-      // onSlideChangeTransitionStart={(swiper) => {}}
-      // onSlideChangeTransitionEnd={(swiper) => {}}
       onSlideChange={(s) => {
-        // onChangeOrUpdateSlide(getPeersInActiveSlide(s.activeIndex));
         onChangeOrUpdateSlide(s.activeIndex);
       }}
       onSwiper={(swiper) => {
-        // setMaxItemsInSlide(calcMaxItems(swiper.width));
-
-        // const onResize = () => {
-        //   setMaxItemsInSlide(calcMaxItems(swiper.width));
-        // };
-
-        // swiper.on("resize", onResize);
+        const onResizeFn = () => {
+          onResize(swiper.width, swiper.height);
+        };
+        swiper.on("resize", onResizeFn);
         swiper.once("destroy", () => {
-          // swiper.off("resize", onResize);
+          swiper.off("resize", onResizeFn);
         });
       }}
       onSlidesLengthChange={(s) => {
-        // onChangeOrUpdateSlide(getPeersInActiveSlide(s.activeIndex));
         onChangeOrUpdateSlide(s.activeIndex);
       }}
     >

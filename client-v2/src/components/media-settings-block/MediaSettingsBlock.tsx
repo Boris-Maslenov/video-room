@@ -48,7 +48,9 @@ const MediaSettingsBlock: FC = () => {
         </div>
       </div>
       <div className="MediaSettingsRow">
-        <div className="Col Col-30">Микрофон</div>
+        <div className="Col Col-30">
+          <span className="TextEllipsis">Микрофон</span>
+        </div>
         <div className="Col Col-70">
           <VRSelect
             value={selectedMic ?? ""}
@@ -61,7 +63,9 @@ const MediaSettingsBlock: FC = () => {
         </div>
       </div>
       <div className="MediaSettingsRow">
-        <div className="Col Col-80">Включить камеру</div>
+        <div className="Col Col-80">
+          <span className="TextEllipsis">Включить камеру</span>
+        </div>
         <div className="Col Col-20 flex-center-right">
           <VRSwitch
             disabled={!allowCam}
@@ -73,7 +77,9 @@ const MediaSettingsBlock: FC = () => {
         </div>
       </div>
       <div className="MediaSettingsRow">
-        <div className="Col Col-80">Включить микрофон</div>
+        <div className="Col Col-80">
+          <span className="TextEllipsis">Включить микрофон</span>
+        </div>
         <div className="Col Col-20 flex-center-right">
           <VRSwitch
             disabled={!allowMic}
