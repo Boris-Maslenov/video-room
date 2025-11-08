@@ -13,16 +13,25 @@ import PeersCount from "../peers-count/PeersCount";
 
 import { MicLevel } from "../mic-level/MicLevel";
 
+const iconSize = {
+  width: "19px",
+  height: "19px",
+};
+
 const MicSwitch: FC<{ on: boolean }> = ({ on }) => {
-  return on ? <MicLevel /> : <MicOffIcon />;
+  return on ? <MicLevel /> : <MicOffIcon {...iconSize} />;
 };
 
 const CamSwitch: FC<{ on: boolean }> = ({ on }) => {
-  return on ? <CamOnIcon /> : <CamOffIcon />;
+  return on ? <CamOnIcon {...iconSize} /> : <CamOffIcon {...iconSize} />;
 };
 
 const ScreenSwitch: FC<{ on: boolean }> = ({ on }) => {
-  return on ? <ScreenShareOnIcon /> : <ScreenShareOffIcon />;
+  return on ? (
+    <ScreenShareOnIcon {...iconSize} />
+  ) : (
+    <ScreenShareOffIcon {...iconSize} />
+  );
 };
 
 type ActionPanelProps = {
@@ -52,7 +61,7 @@ const ActionPanel: FC<ActionPanelProps> = ({
           onClick={() => onPanelAction("shared")}
           disabled={disabled["shared"]}
         >
-          <LinkIcon />
+          <LinkIcon {...iconSize} />
         </button>
         <button className="IconButton" disabled={false}>
           <PeersCount count={peersCount} />
@@ -86,7 +95,7 @@ const ActionPanel: FC<ActionPanelProps> = ({
           className="IconButton color-red"
           onClick={() => onPanelAction("exit")}
         >
-          <CloseIcon />
+          <CloseIcon {...iconSize} />
         </button>
       </div>
     </div>
