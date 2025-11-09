@@ -27,5 +27,8 @@
     transform: translateY(-50%);
     display: flex;
     opacity: 0.7;
+    & > * {
+      display: flex;
+    }
   }
 }
