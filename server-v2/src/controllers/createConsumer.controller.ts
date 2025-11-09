@@ -1,12 +1,13 @@
 import { HandleParameters } from "../types";
-import { getDefaultRoomData } from "../utils/dataUtils";
+import { getDefaultRoomData, log } from "../utils/dataUtils";
 
 export const createConsumer: (
   ...args: HandleParameters<"createConsumer">
 ) => void = async function (data, callback) {
   try {
-    const { roomId, peerId, producerId } = data;
+    const { roomId, peerId, producerId, paused } = data;
     // peerId = remotePeerId id пира, к которому привязан producerId
+
     if (!producerId) {
       const message = "producerId обязательное поле";
       callback?.({
@@ -31,7 +32,7 @@ export const createConsumer: (
     const newConsumer = await peer.recvTransport.consume({
       producerId,
       rtpCapabilities,
-      paused: false,
+      paused,
       appData: { peerId },
     });
 

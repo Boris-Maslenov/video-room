@@ -113,6 +113,7 @@ export type ClientEvents = {
     data: DefaultRoomData & {
       rtpCapabilities: RtpCapabilities;
       producerId: string;
+      paused: boolean;
     },
     callback: (
       response: SocketResponse<{
