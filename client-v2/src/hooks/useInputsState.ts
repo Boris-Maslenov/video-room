@@ -1,15 +1,54 @@
 import { useState, ChangeEvent } from "react";
 
-const useInputsState = (
-  initialState = {}
-): [Record<string, any>, (a: ChangeEvent<HTMLInputElement>) => void] => {
-  const [inputsState, setInputsState] = useState(initialState);
+// type Input = Record<string, any>;
+// type Input = Record<string, any>;
+
+type Input = {
+  initialValues: Record<string, any>;
+  validationShema: Record<string, [string, (v: string) => boolean]>;
+};
+
+type Output = {
+  values: Input["initialValues"];
+  errors: Record<string, string>;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+};
+
+const useInputsState: (props: Input) => Output = ({
+  initialValues = {},
+  validationShema,
+}) => {
+  const [inputsState, setInputsState] = useState(initialValues);
+  const [errors, setErrors] = useState<Output["errors"]>({});
 
   const setValue = (e: ChangeEvent<HTMLInputElement>) => {
-    setInputsState((state) => ({ ...state, [e.target.name]: e.target.value }));
+    const validationCallback = validationShema[e.target.name][1] ?? null;
+    const name = e.target.name;
+    const value = e.target.value;
+
+    if (validationCallback) {
+      const isValid = validationCallback(e.target.value);
+
+      if (isValid && errors[name]) {
+        setErrors((prev) => {
+          delete prev[name];
+          return { ...prev };
+        });
+      }
+
+      if (!isValid && !errors[name]) {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: validationShema[name][0],
+        }));
+      }
+    }
+
+    setInputsState((state) => ({ ...state, [name]: value }));
   };
 
-  return [inputsState, setValue];
+  // return [inputsState, setValue];
+  return { values: inputsState, onChange: setValue, errors };
 };
 
 export default useInputsState;

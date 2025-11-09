@@ -6,7 +6,6 @@ import { CloseIcon } from "../../icons";
 export interface ModalProps {
   title?: string;
   onOpen: (open: boolean) => void;
-  onSucces: () => void;
   open: boolean;
   children?: ReactNode;
   description?: string;

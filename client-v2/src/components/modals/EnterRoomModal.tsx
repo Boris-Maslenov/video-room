@@ -4,6 +4,7 @@ import Fieldset from "../shared/fieldset/Fieldset";
 import useInputsState from "../../hooks/useInputsState";
 import DefaultDialogActions from "../shared/modal/DefaultDialogActions";
 import MediaSettingsBlock from "../media-settings-block/MediaSettingsBlock";
+import { validatePeerName } from "../../utils/formUtils";
 
 type PropsType = Omit<ModalProps, "onSucces"> & {
   onSucces: (peerName: string) => void;
@@ -18,33 +19,32 @@ const EnterRoomModal: FC<PropsType> = ({
   onSucces,
   disabledSuccesButton = false,
 }) => {
-  const [fields, setValue] = useInputsState({ peerName: "" });
+  const { values, onChange, errors } = useInputsState({
+    initialValues: { peerName: "" },
+    validationShema: {
+      peerName: ["Имя должно содержать не менее 3 символов", validatePeerName],
+    },
+  });
+
   return (
-    <Modal
-      title="Подключиться к комнате"
-      onOpen={onOpen}
-      open={true}
-      onSucces={() => onSucces(fields["peerName"])}
-    >
+    <Modal title="Подключиться к комнате" onOpen={onOpen} open={true}>
       <MediaSettingsBlock />
       <div className="fields-container">
         <Fieldset
           inputProps={{
             name: "peerName",
             placeholder: "Ваше Имя",
-            onChange: setValue,
+            onChange: onChange,
+            error: errors.peerName,
           }}
         />
       </div>
       <DefaultDialogActions
         onOpen={onOpen}
         onSucces={() => {
-          onSucces(fields["peerName"]);
+          onSucces(values.peerName);
         }}
-        disabledSuccesButton={
-          (fields["peerName"] as string).trim().length < 3 ||
-          disabledSuccesButton
-        }
+        disabledSuccesButton={Boolean(errors.peerName) || disabledSuccesButton}
       />
     </Modal>
   );

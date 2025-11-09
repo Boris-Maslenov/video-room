@@ -3,7 +3,7 @@ import { FC } from "react";
 import Input, { InputProps } from "../input/Input";
 
 type PropsType = {
-  inputProps?: InputProps;
+  inputProps: InputProps;
   label?: string;
 };
 
@@ -16,7 +16,7 @@ const Fieldset: FC<PropsType> = ({ inputProps, label }) => {
           {label}
         </label>
       )}
-      <Input {...inputProps} id={id} />
+      <Input {...inputProps} name={inputProps.name} id={id} />
     </fieldset>
   );
 };

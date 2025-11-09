@@ -4,11 +4,13 @@
   display: inline-flex;
   justify-content: center;
   height: 35px;
+  position: relative;
   & input {
     display: block;
     width: 100%;
     font-size: 15px;
     padding: 0 10px;
+    padding-right: 30px;
     font-family: var(--font-family);
     line-height: 1;
     box-shadow: 0 0 0 1px #c2b5f5;
@@ -16,5 +18,14 @@
     &:focus {
       box-shadow: 0 0 0 2px #aa99ec;
     }
+  }
+  & .Input-error {
+    color: rgb(237, 52, 52);
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    opacity: 0.7;
   }
 }
