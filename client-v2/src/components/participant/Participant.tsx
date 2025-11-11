@@ -1,5 +1,5 @@
 import "./Participant.styles.scss";
-import { FC, memo, useRef, useEffect, useState } from "react";
+import { FC, useRef, useEffect, useState } from "react";
 import { ClientRemotePeer } from "../../stores/MediasoupClientStore";
 import ParticipantLabel from "../participant-label/ParticipantLabel";
 import MediaRenderer from "../mediaRenderer/MediaRenderer";
@@ -7,8 +7,11 @@ import classNames from "classnames";
 import ParticipantInfo from "./ParticipantInfo";
 import { waitForFirstNewFrame } from "../../utils/mediaUtils";
 import Loader from "../shared/loader/Loader";
+import { observer } from "mobx-react-lite";
+import { useMediaSoupStore } from "../../context/StoresProvider";
 
-const Participant: FC<{ peer: ClientRemotePeer }> = memo(({ peer }) => {
+const Participant: FC<{ peer: ClientRemotePeer }> = observer(({ peer }) => {
+  const mediaSoupStore = useMediaSoupStore();
   const mediaElRef = useRef<HTMLVideoElement>(null);
   const stream = peer.mediaStream;
   const isSelf = !!peer.isSelf;
@@ -17,6 +20,8 @@ const Participant: FC<{ peer: ClientRemotePeer }> = memo(({ peer }) => {
     (c) => c.appData.source === "video"
   );
   const videoConsumerIsPaused = videoConsumer?.paused === true;
+  const isActiveSpeaker =
+    !isSelf && mediaSoupStore.getActiveSpeakers.some((id) => id === peer.id);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
 
@@ -66,11 +71,15 @@ const Participant: FC<{ peer: ClientRemotePeer }> = memo(({ peer }) => {
       data-peer-id={peer.id}
       className={classNames("Participant", {
         "video-active": isViewVideo,
+        "audio-active": isActiveSpeaker,
       })}
     >
       {isViewLoader ? <Loader /> : <ParticipantLabel />}
       <MediaRenderer ref={mediaElRef} />
-      <ParticipantInfo name={peer.name} micState={peer.micOn} />
+      <ParticipantInfo
+        name={`${peer.id}, ${mediaSoupStore.root.network.socket.id}`}
+        micState={peer.micOn}
+      />
     </div>
   );
 });

@@ -15,7 +15,7 @@ import { WS_IP } from "../config";
 class SocketStore {
   root: RootStore;
   private initial: boolean;
-  private socket: Socket<ServerEvents, ClientEvents>;
+  socket: Socket<ServerEvents, ClientEvents>;
   apiSend: SocketSendType;
   eventBus: { [K in keyof ServerEvents]+?: ServerEvents[K][] } = {};
   networkStatus: NetworkPeerStatus = "offline";
@@ -46,6 +46,7 @@ class SocketStore {
     this.socket.on("peer:screenOn", this.handleScreenOn);
     this.socket.on("peer:toggleMic", this.handleToggleMic);
     this.socket.on("room:updateCount", this.handleUpdateCount);
+    this.socket.on("room:activeSpeaker", this.handleActiveSpeaker);
 
     this.socket.on("connect", () => {
       this.setNetStatus("online");
@@ -101,6 +102,12 @@ class SocketStore {
     this.emit("room:updateCount", ...args);
   }
 
+  private handleActiveSpeaker(
+    ...args: ParamsServerEvents["room:activeSpeaker"]
+  ) {
+    this.emit("room:activeSpeaker", ...args);
+  }
+
   cleanupNetworkSession() {
     if (!this.initial) return;
     this.initial = false;
@@ -112,6 +119,7 @@ class SocketStore {
     this.socket.off("peer:screenOn", this.handleScreenOn);
     this.socket.off("peer:toggleMic", this.handleToggleMic);
     this.socket.off("room:updateCount", this.handleUpdateCount);
+    this.socket.off("room:activeSpeaker", this.handleActiveSpeaker);
     // защита от утечек при HMR
     this.socket.disconnect();
     this.eventBus = {};

@@ -24,7 +24,6 @@ const RootLayout: FC = () => {
             errorStore.popError();
           }}
           open={errorStore.errorsStack.length > 0}
-          onSucces={() => {}}
         >
           {errorStore.errorsStack.at(-1)?.message}
         </Modal>

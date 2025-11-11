@@ -35,6 +35,9 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
     const onUpdateCount = (count: number) => {
       root.viewPeer.peersCount = count;
     };
+    const on = (peerIds: string[]) => {
+      root.mediaSoupClient.setActiveSpeakers(peerIds);
+    };
 
     root.network.addListener("peer:closed", onPeerClosed);
     root.network.addListener("peer:ready", onPeerReady);
@@ -44,6 +47,7 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
     root.network.addListener("peer:screenOff", onScreenOff);
     root.network.addListener("peer:toggleMic", onToggleMic);
     root.network.addListener("room:updateCount", onUpdateCount);
+    root.network.addListener("room:activeSpeaker", onActiveSpeaker);
 
     return () => root.network.cleanupNetworkSession();
   }, [root]);

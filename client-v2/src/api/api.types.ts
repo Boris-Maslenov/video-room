@@ -40,6 +40,7 @@ export type ParamsServerEvents = {
   "peer:screenOn": [string, string];
   "peer:screenOff": [string, string];
   "peer:toggleMic": [string, boolean];
+  "room:activeSpeaker": [string[]];
   "room:updateCount": [number];
 };
 

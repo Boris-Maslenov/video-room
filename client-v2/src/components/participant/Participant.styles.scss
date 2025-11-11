@@ -23,6 +23,21 @@
     }
   }
 
+  &.audio-active {
+    &:before {
+      content: "";
+      display: block;
+      position: absolute;
+      width: calc(100%);
+      height: calc(100%);
+      left: 0;
+      top: 0;
+      border: 5px solid green;
+      z-index: 10;
+      border-radius: inherit;
+    }
+  }
+
   & .ParticipantInfo {
     position: absolute;
     left: 50%;

@@ -11,7 +11,10 @@ import type {
 } from "mediasoup-client/types";
 import { KindType, SourceType } from "../api/api.types";
 import { safeClose, safeStop } from "../utils/mediaUtils";
-import { SCREEN_PRODUCER_OPTIONS } from "../config";
+import {
+  ACTIVE_SPEAKER_UPDATE_INTERVAL_MS,
+  SCREEN_PRODUCER_OPTIONS,
+} from "../config";
 
 export type MediaDevice = {
   deviceId: string;
@@ -82,9 +85,8 @@ class MediasoupClientStore {
   isRemoteScreenActive: boolean = false;
 
   private _selfPeer: ClientRemotePeer | null = null;
-  // private _visiblePeerIds: string[] = [];
-  // private _peersCount: number = 0;
-  // private _activePeerGroup: number = 0;
+  private _activeSpeakers: Set<string> = new Set();
+  private _idTimeOut: number | null = null;
 
   constructor(root: RootStore) {
     this.root = root;
@@ -95,6 +97,28 @@ class MediasoupClientStore {
       { remotePeers: observable.ref },
       { autoBind: true }
     );
+  }
+
+  get getActiveSpeakers() {
+    return Array.from(this._activeSpeakers);
+  }
+
+  setActiveSpeakers(ids: string[]) {
+    if (this._idTimeOut) {
+      window.clearTimeout(this._idTimeOut);
+      this._idTimeOut = null;
+    }
+
+    this._activeSpeakers = new Set(ids);
+
+    this._idTimeOut = window.setTimeout(
+      () => this.clearActiveSpeaker(),
+      ACTIVE_SPEAKER_UPDATE_INTERVAL_MS
+    );
+  }
+
+  clearActiveSpeaker() {
+    this._activeSpeakers.clear();
   }
 
   get selfPeer() {
