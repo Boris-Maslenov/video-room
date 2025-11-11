@@ -8,6 +8,7 @@ import {
   DtlsParameters,
   RtpParameters,
   Consumer,
+  AudioLevelObserver,
 } from "mediasoup/node/lib/types";
 import { TransportParams } from "./utils/webRtcUtils";
 
@@ -175,6 +176,7 @@ export type ServerEvents = {
   "peer:closed": (pId: string) => void;
   "peer:toggleMic": (pId: string, micOn: boolean) => void;
   "room:updateCount": (count: number) => void;
+  "room:activeSpeaker": (peerId: string[]) => void;
 };
 
 export type HandleParameters<T extends keyof ClientEvents> = [
@@ -223,6 +225,7 @@ export type Room = {
   worker: Worker;
   router: Router;
   consumers: Consumer<{ peerId: string }>[];
+  audioObserver: AudioLevelObserver;
 };
 
 export type RoomDto = {

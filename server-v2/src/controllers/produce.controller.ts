@@ -1,4 +1,4 @@
-import { getPeer } from "../models/room";
+import { getPeer, getRoom } from "../models/room";
 import { HandleParameters } from "../types";
 
 export const produce: (...args: HandleParameters<"produce">) => void =
@@ -27,6 +27,9 @@ export const produce: (...args: HandleParameters<"produce">) => void =
             rtpParameters,
             appData: { source: "audio" },
           });
+          // добавляем audioProducer для измерения уровня громкости
+          const room = getRoom(roomId);
+          room.audioObserver.addProducer({ producerId: peer.audioProducer.id });
           callback?.({
             ok: true,
             data: { id: peer.audioProducer.id },

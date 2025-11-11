@@ -15,6 +15,6 @@ const socketio = new Server(server, {
 
 server.listen(WS_PORT, "0.0.0.0", async () => {
   createSocketRouter(socketio);
-  await createRoomService();
+  // await createRoomService();
   log(`WS Сервер успешно запустился на ${WS_PORT} порту`, "blue");
 });

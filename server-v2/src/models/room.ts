@@ -11,6 +11,11 @@ export const createRoom = async (): Promise<Room> => {
   try {
     const worker = await mediasoup.createWorker();
     const router = await worker.createRouter({ mediaCodecs });
+    const audioLevelObserver = await router.createAudioLevelObserver({
+      maxEntries: 3,
+      threshold: -55,
+      interval: 800,
+    });
 
     return {
       id: ROOM_ID,
@@ -19,6 +24,7 @@ export const createRoom = async (): Promise<Room> => {
       worker,
       router,
       consumers: [],
+      audioObserver: audioLevelObserver,
     };
   } catch (err) {
     throw err;
