@@ -43,6 +43,7 @@ export const MicLevel: FC = observer(() => {
 
         if (rms < NOISE_LEVEL) {
           const nextPx = `${MIN_VALUE}px`;
+
           if (levelElem.current?.style.getPropertyValue(VAR) !== nextPx) {
             levelElem.current?.style.setProperty(VAR, nextPx);
           }

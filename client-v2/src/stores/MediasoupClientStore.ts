@@ -26,6 +26,8 @@ export type ProducerKey = "audioProducer" | "videoProducer" | "screenProducer";
 
 export type NetworkPeerStatus = "offline" | "connecting" | "online";
 
+export type NetworkQuality = "good" | "medium" | "bad" | "very-bad";
+
 export type Source = "audio" | "video" | "screen";
 
 export type RemoteProducerData = {
@@ -41,6 +43,7 @@ export type Peer = {
   name: string;
   socketId: string;
   isJoined: boolean;
+  networkQuality?: NetworkQuality;
 };
 
 export type RemotePeer = Peer & {
@@ -87,6 +90,7 @@ class MediasoupClientStore {
   private _selfPeer: ClientRemotePeer | null = null;
   private _activeSpeakers: Set<string> = new Set();
   private _idTimeOut: number | null = null;
+  private _networkQuality: NetworkQuality | null = null;
 
   constructor(root: RootStore) {
     this.root = root;
@@ -119,6 +123,14 @@ class MediasoupClientStore {
 
   clearActiveSpeaker() {
     this._activeSpeakers.clear();
+  }
+
+  get networkQuality() {
+    return this._networkQuality;
+  }
+
+  set networkQuality(q: NetworkQuality | null) {
+    this._networkQuality = q;
   }
 
   get selfPeer() {
@@ -178,7 +190,6 @@ class MediasoupClientStore {
       // Запускаем все которые в области просмотра
       if (foundVideoConsumer) {
         foundVideoConsumer.resume();
-        console.log(foundVideoConsumer);
         updatedForOn.push(foundVideoConsumer.id);
         updatedIds.push(peer.id);
       }
@@ -199,10 +210,6 @@ class MediasoupClientStore {
         updatedIds.includes(p.id) ? { ...p } : p
       );
     }
-
-    // this.remotePeers = this.remotePeers = this.remotePeers.map((p) => ({
-    //   ...p,
-    // }));
 
     if (updatedForOn.length > 0) {
       this.root.network.apiSend("consumerResume", {
@@ -869,6 +876,19 @@ class MediasoupClientStore {
   toggleRemoteMic(peerId: string, micOn: boolean) {
     this.remotePeers = this.remotePeers.map((p) =>
       p.id === peerId ? { ...p, micOn } : p
+    );
+  }
+
+  updateRemoteNetworkQuality(peerId: string, networkQuality: NetworkQuality) {
+    console.log("updateRemoteNetworkQuality: ", peerId, networkQuality);
+
+    if (peerId === this.selfPeer?.id) {
+      this.networkQuality = networkQuality;
+      return;
+    }
+
+    this.remotePeers = this.remotePeers.map((p) =>
+      p.id === peerId ? { ...p, networkQuality } : p
     );
   }
 

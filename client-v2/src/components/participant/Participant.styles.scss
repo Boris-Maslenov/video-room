@@ -53,6 +53,34 @@
     align-items: center;
     gap: 8px;
   }
+
+  & .LowSignalBlock {
+    position: absolute;
+    display: flex;
+    z-index: 10;
+    top: 10px;
+    left: 10px;
+    width: 30px;
+    height: 30px;
+    backdrop-filter: blur(8px);
+    border-radius: 4px;
+    align-items: center;
+    justify-content: center;
+    & .quality {
+      &.good {
+        color: green;
+      }
+      &.medium {
+        color: orange;
+      }
+      &.bad {
+        color: red;
+      }
+      &.very-bad {
+        color: red;
+      }
+    }
+  }
 }
 
 @media (max-width: 900px) {

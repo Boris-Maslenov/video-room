@@ -9,6 +9,7 @@ import { waitForFirstNewFrame } from "../../utils/mediaUtils";
 import Loader from "../shared/loader/Loader";
 import { observer } from "mobx-react-lite";
 import { useMediaSoupStore } from "../../context/StoresProvider";
+import { QualitySignalIcon } from "../icons/index";
 
 const Participant: FC<{ peer: ClientRemotePeer }> = observer(({ peer }) => {
   const mediaSoupStore = useMediaSoupStore();
@@ -34,6 +35,9 @@ const Participant: FC<{ peer: ClientRemotePeer }> = observer(({ peer }) => {
 
   const isViewVideo = isSelf ? videoTrack : isVideoEnabled;
   const isViewLoader = !isSelf && isVideoLoading;
+  const networkQ = isSelf
+    ? mediaSoupStore.networkQuality ?? null
+    : peer.networkQuality ?? null;
 
   useEffect(() => {
     if (mediaElRef.current && stream) {
@@ -66,6 +70,8 @@ const Participant: FC<{ peer: ClientRemotePeer }> = observer(({ peer }) => {
     }
   }, [videoConsumerIsPaused, videoConsumer]);
 
+  console.log("peer", peer);
+
   return (
     <div
       data-peer-id={peer.id}
@@ -74,12 +80,16 @@ const Participant: FC<{ peer: ClientRemotePeer }> = observer(({ peer }) => {
         "audio-active": isActiveSpeaker,
       })}
     >
+      {true && (
+        <div className="LowSignalBlock">
+          <div className={classNames("quality", networkQ)}>
+            <QualitySignalIcon quality={networkQ} />
+          </div>
+        </div>
+      )}
       {isViewLoader ? <Loader /> : <ParticipantLabel />}
       <MediaRenderer ref={mediaElRef} />
-      <ParticipantInfo
-        name={`${peer.id}, ${mediaSoupStore.root.network.socket.id}`}
-        micState={peer.micOn}
-      />
+      <ParticipantInfo name={peer.name} micState={peer.micOn} />
     </div>
   );
 });

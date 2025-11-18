@@ -14,3 +14,4 @@ export { UserIcon } from "./UserIcon";
 export { UsersIcon } from "./UsersIcon";
 export { DotsAnimateIcon } from "./DotsAnimateIcon";
 export { ErrorIcon } from "./ErrorIcon";
+export { QualitySignalIcon } from "./QualitySignalIcon";

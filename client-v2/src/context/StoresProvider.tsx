@@ -6,7 +6,7 @@ import {
   useEffect,
 } from "react";
 import { RootStore, createRootStore } from "../stores/RootStore";
-import { RemotePeer } from "../stores/MediasoupClientStore";
+import { NetworkQuality, RemotePeer } from "../stores/MediasoupClientStore";
 
 const errorMesage = "Root store not found!";
 
@@ -35,8 +35,15 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
     const onUpdateCount = (count: number) => {
       root.viewPeer.peersCount = count;
     };
-    const on = (peerIds: string[]) => {
+    const onActiveSpeaker = (peerIds: string[]) => {
       root.mediaSoupClient.setActiveSpeakers(peerIds);
+    };
+    const onUpdateNetworkQuality = (
+      peerId: string,
+      quality: NetworkQuality
+    ) => {
+      console.log("onUpdateNetworkQuality", peerId, quality);
+      root.mediaSoupClient.updateRemoteNetworkQuality(peerId, quality);
     };
 
     root.network.addListener("peer:closed", onPeerClosed);
@@ -46,6 +53,10 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
     root.network.addListener("peer:screenOn", onScreenOn);
     root.network.addListener("peer:screenOff", onScreenOff);
     root.network.addListener("peer:toggleMic", onToggleMic);
+    root.network.addListener(
+      "peer:updateNetworkQuality",
+      onUpdateNetworkQuality
+    );
     root.network.addListener("room:updateCount", onUpdateCount);
     root.network.addListener("room:activeSpeaker", onActiveSpeaker);
 

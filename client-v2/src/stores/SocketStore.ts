@@ -45,6 +45,10 @@ class SocketStore {
     this.socket.on("peer:screenOff", this.handleScreenOff);
     this.socket.on("peer:screenOn", this.handleScreenOn);
     this.socket.on("peer:toggleMic", this.handleToggleMic);
+    this.socket.on(
+      "peer:updateNetworkQuality",
+      this.handleUpdateNetworkQuality
+    );
     this.socket.on("room:updateCount", this.handleUpdateCount);
     this.socket.on("room:activeSpeaker", this.handleActiveSpeaker);
 
@@ -108,6 +112,12 @@ class SocketStore {
     this.emit("room:activeSpeaker", ...args);
   }
 
+  private handleUpdateNetworkQuality(
+    ...args: ParamsServerEvents["peer:updateNetworkQuality"]
+  ) {
+    this.emit("peer:updateNetworkQuality", ...args);
+  }
+
   cleanupNetworkSession() {
     if (!this.initial) return;
     this.initial = false;
@@ -118,6 +128,10 @@ class SocketStore {
     this.socket.off("peer:screenOff", this.handleScreenOff);
     this.socket.off("peer:screenOn", this.handleScreenOn);
     this.socket.off("peer:toggleMic", this.handleToggleMic);
+    this.socket.off(
+      "peer:updateNetworkQuality",
+      this.handleUpdateNetworkQuality
+    );
     this.socket.off("room:updateCount", this.handleUpdateCount);
     this.socket.off("room:activeSpeaker", this.handleActiveSpeaker);
     // защита от утечек при HMR
