@@ -36,6 +36,7 @@ export const joinRoom: (...args: HandleParameters<"joinRoom">) => void =
                 "isJoined",
                 "camOn",
                 "micOn",
+                "networkQuality",
               ]),
               producersData: [
                 p.audioProducer,

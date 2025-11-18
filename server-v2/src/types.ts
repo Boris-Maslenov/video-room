@@ -175,6 +175,10 @@ export type ServerEvents = {
   "peer:ready": (pId: RemotePeer) => void;
   "peer:closed": (pId: string) => void;
   "peer:toggleMic": (pId: string, micOn: boolean) => void;
+  "peer:updateNetworkQuality": (
+    pId: string,
+    networkQuality: NetworkQuality
+  ) => void;
   "room:updateCount": (count: number) => void;
   "room:activeSpeaker": (peerId: string[]) => void;
 };
@@ -188,6 +192,8 @@ export type MediaState = Record<"cam" | "mic" | "screen", boolean>;
 
 type ProducerType = Producer | null;
 type TransportType = Transport | null;
+
+export type NetworkQuality = "good" | "medium" | "bad" | "very-bad";
 
 export type Peer = {
   id: string;
@@ -206,6 +212,8 @@ export type Peer = {
 
   micOn: boolean;
   camOn: boolean;
+
+  networkQuality?: NetworkQuality;
 };
 
 export type PeerDto = Omit<

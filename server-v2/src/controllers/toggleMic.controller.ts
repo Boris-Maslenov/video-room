@@ -4,7 +4,6 @@ import { getDefaultRoomData } from "../utils/dataUtils";
 
 export const toggleMic: (...args: HandleParameters<"toggleMic">) => void =
   async function (this: Socket<{}, ServerEvents>, data, callback) {
-    console.log("toggleMic");
     try {
       const socket = this;
       const { peerId, roomId, micOn } = data;
