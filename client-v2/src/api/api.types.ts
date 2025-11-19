@@ -1,4 +1,4 @@
-import { NetworkQuality, RemotePeer } from "../stores/MediasoupClientStore";
+import { QualityData, RemotePeer } from "../stores/MediasoupClientStore";
 
 export type SocketSendType = <T>(
   type: string,
@@ -40,7 +40,7 @@ export type ParamsServerEvents = {
   "peer:screenOn": [string, string];
   "peer:screenOff": [string, string];
   "peer:toggleMic": [string, boolean];
-  "peer:updateNetworkQuality": [string, NetworkQuality];
+  "peer:updateNetworkQuality": [string, QualityData];
   "room:activeSpeaker": [string[]];
   "room:updateCount": [number];
 };

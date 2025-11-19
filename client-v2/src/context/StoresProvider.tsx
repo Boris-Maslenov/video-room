@@ -6,7 +6,7 @@ import {
   useEffect,
 } from "react";
 import { RootStore, createRootStore } from "../stores/RootStore";
-import { NetworkQuality, RemotePeer } from "../stores/MediasoupClientStore";
+import { QualityData, RemotePeer } from "../stores/MediasoupClientStore";
 
 const errorMesage = "Root store not found!";
 
@@ -38,11 +38,7 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
     const onActiveSpeaker = (peerIds: string[]) => {
       root.mediaSoupClient.setActiveSpeakers(peerIds);
     };
-    const onUpdateNetworkQuality = (
-      peerId: string,
-      quality: NetworkQuality
-    ) => {
-      console.log("onUpdateNetworkQuality", peerId, quality);
+    const onUpdateNetworkQuality = (peerId: string, quality: QualityData) => {
       root.mediaSoupClient.updateRemoteNetworkQuality(peerId, quality);
     };
 

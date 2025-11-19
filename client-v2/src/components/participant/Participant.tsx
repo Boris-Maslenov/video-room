@@ -5,7 +5,10 @@ import ParticipantLabel from "../participant-label/ParticipantLabel";
 import MediaRenderer from "../mediaRenderer/MediaRenderer";
 import classNames from "classnames";
 import ParticipantInfo from "./ParticipantInfo";
-import { waitForFirstNewFrame } from "../../utils/mediaUtils";
+import {
+  calcNetworkQuality,
+  waitForFirstNewFrame,
+} from "../../utils/mediaUtils";
 import Loader from "../shared/loader/Loader";
 import { observer } from "mobx-react-lite";
 import { useMediaSoupStore } from "../../context/StoresProvider";
@@ -35,9 +38,13 @@ const Participant: FC<{ peer: ClientRemotePeer }> = observer(({ peer }) => {
 
   const isViewVideo = isSelf ? videoTrack : isVideoEnabled;
   const isViewLoader = !isSelf && isVideoLoading;
-  const networkQ = isSelf
-    ? mediaSoupStore.networkQuality ?? null
-    : peer.networkQuality ?? null;
+  const networkQ = calcNetworkQuality(
+    Math.min(
+      ...Object.values(
+        isSelf ? mediaSoupStore.networkQuality || {} : peer.networkQuality || {}
+      )
+    )
+  );
 
   useEffect(() => {
     if (mediaElRef.current && stream) {
@@ -69,8 +76,6 @@ const Participant: FC<{ peer: ClientRemotePeer }> = observer(({ peer }) => {
           });
     }
   }, [videoConsumerIsPaused, videoConsumer]);
-
-  console.log("peer", peer);
 
   return (
     <div

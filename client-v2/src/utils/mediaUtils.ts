@@ -1,4 +1,7 @@
-import { ClientRemotePeer } from "../stores/MediasoupClientStore";
+import {
+  ClientRemotePeer,
+  NetworkQuality,
+} from "../stores/MediasoupClientStore";
 
 export const safeClose = (...objs: ({ close: () => void } | null)[]) => {
   for (const obj of objs) {
@@ -81,7 +84,7 @@ export const waitForFirstNewFrame = (
     pollIntervalMs?: number;
   } = {}
 ) => {
-  const { minNewFrames = 10, timeoutMs = 5000, pollIntervalMs = 50 } = opts;
+  const { minNewFrames = 10, timeoutMs = Infinity, pollIntervalMs = 50 } = opts;
 
   return new Promise<void>((resolve) => {
     let done = false;
@@ -113,7 +116,7 @@ export const waitForFirstNewFrame = (
     // Таймаут-страховка
     tId = window.setTimeout(finish, timeoutMs);
 
-    // Помощник чтения счётчика кадров (fallback-путь)
+    // Помошник чтения счётчика кадров (fallback-путь)
     const readTotal = () =>
       video.getVideoPlaybackQuality?.().totalVideoFrames ??
       (video as any).webkitDecodedFrameCount ??
@@ -159,4 +162,11 @@ export const waitForFirstNewFrame = (
 
 export const checkTrackActive = (track: MediaStreamTrack): boolean => {
   return Boolean(track && track.readyState === "live" && track.muted === false);
+};
+
+export const calcNetworkQuality = (score: number): NetworkQuality => {
+  if (score >= 8) return "good";
+  if (score >= 5) return "medium";
+  if (score >= 3) return "bad";
+  return "very-bad";
 };

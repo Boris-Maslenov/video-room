@@ -28,6 +28,8 @@ export type NetworkPeerStatus = "offline" | "connecting" | "online";
 
 export type NetworkQuality = "good" | "medium" | "bad" | "very-bad";
 
+export type QualityData = Partial<Record<"video" | "audio" | "screen", number>>;
+
 export type Source = "audio" | "video" | "screen";
 
 export type RemoteProducerData = {
@@ -43,7 +45,7 @@ export type Peer = {
   name: string;
   socketId: string;
   isJoined: boolean;
-  networkQuality?: NetworkQuality;
+  networkQuality?: QualityData;
 };
 
 export type RemotePeer = Peer & {
@@ -90,7 +92,7 @@ class MediasoupClientStore {
   private _selfPeer: ClientRemotePeer | null = null;
   private _activeSpeakers: Set<string> = new Set();
   private _idTimeOut: number | null = null;
-  private _networkQuality: NetworkQuality | null = null;
+  private _networkQuality: QualityData | null = null;
 
   constructor(root: RootStore) {
     this.root = root;
@@ -129,7 +131,7 @@ class MediasoupClientStore {
     return this._networkQuality;
   }
 
-  set networkQuality(q: NetworkQuality | null) {
+  set networkQuality(q: QualityData | null) {
     this._networkQuality = q;
   }
 
@@ -879,9 +881,7 @@ class MediasoupClientStore {
     );
   }
 
-  updateRemoteNetworkQuality(peerId: string, networkQuality: NetworkQuality) {
-    console.log("updateRemoteNetworkQuality: ", peerId, networkQuality);
-
+  updateRemoteNetworkQuality(peerId: string, networkQuality: QualityData) {
     if (peerId === this.selfPeer?.id) {
       this.networkQuality = networkQuality;
       return;
