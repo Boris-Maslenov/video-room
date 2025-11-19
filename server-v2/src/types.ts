@@ -191,9 +191,14 @@ export type HandleParameters<T extends keyof ClientEvents> = [
 export type MediaState = Record<"cam" | "mic" | "screen", boolean>;
 
 type ProducerType = Producer | null;
+
 type TransportType = Transport | null;
 
-export type NetworkQuality = "good" | "medium" | "bad" | "very-bad";
+export type Quality = number;
+
+export type NetworkQuality = Partial<
+  Record<"audio" | "video" | "screen", Quality>
+>;
 
 export type Peer = {
   id: string;

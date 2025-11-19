@@ -7,7 +7,6 @@ import { getDefaultRoomData, log } from "../utils/dataUtils";
 export const camOn: (...args: HandleParameters<"camOn">) => void =
   async function (this: Socket<{}, ServerEvents>, data, callback) {
     try {
-      log("camOn", "yellow");
       const socket = this;
       const { peerId, roomId } = data;
       const { room, peer } = getDefaultRoomData(peerId, roomId);
