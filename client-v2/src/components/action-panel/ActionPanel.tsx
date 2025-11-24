@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useState } from "react";
 import "./ActionPanel.styles.scss";
 import {
   MicOffIcon,
@@ -8,10 +8,13 @@ import {
   ScreenShareOffIcon,
   LinkIcon,
   CloseIcon,
+  ReverseCamIcon,
 } from "../icons";
 import PeersCount from "../peers-count/PeersCount";
 import { MicLevel } from "../mic-level/MicLevel";
 import HVPopover from "../shared/popover/Popover";
+
+import { useLongPress } from "../../hooks/useLongPress";
 
 const iconSize = {
   width: "19px",
@@ -55,6 +58,18 @@ const ActionPanel: FC<ActionPanelProps> = ({
   peersNames,
   disabled = {},
 }) => {
+  const [reversCamView, setReversCamView] = useState(false);
+
+  const longPressPropsForCamOn = useLongPress({
+    onLongPress: () => setReversCamView((state) => !state),
+    onClick: () => onPanelAction("cam"),
+  });
+
+  const longPressPropsForCamRev = useLongPress({
+    onLongPress: () => setReversCamView((state) => !state),
+    onClick: () => console.log("REVERSE"),
+  });
+
   return (
     <div className="ActionsPanel">
       <div className="left-item">
@@ -95,14 +110,27 @@ const ActionPanel: FC<ActionPanelProps> = ({
         >
           <MicSwitch on={micState} />
         </button>
-        <button
-          className="IconButton"
-          onClick={() => onPanelAction("cam")}
-          disabled={disabled["cam"]}
-          title={camState ? "Выключить камеру" : "Включить камеру"}
-        >
-          <CamSwitch on={camState} />
-        </button>
+        <div className="CamOnAndReverse">
+          {reversCamView ? (
+            <button
+              className="IconButton"
+              title={"Переключить камеру"}
+              {...longPressPropsForCamRev}
+            >
+              <ReverseCamIcon />
+            </button>
+          ) : (
+            <button
+              className="IconButton"
+              disabled={disabled["cam"]}
+              title={camState ? "Выключить камеру" : "Включить камеру"}
+              {...longPressPropsForCamOn}
+            >
+              <CamSwitch on={camState} />
+            </button>
+          )}
+        </div>
+
         <button
           className="IconButton mobile-hidden"
           onClick={() => onPanelAction("screen")}

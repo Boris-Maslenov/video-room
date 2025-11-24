@@ -15,3 +15,4 @@ export { UsersIcon } from "./UsersIcon";
 export { DotsAnimateIcon } from "./DotsAnimateIcon";
 export { ErrorIcon } from "./ErrorIcon";
 export { QualitySignalIcon } from "./QualitySignalIcon";
+export { ReverseCamIcon } from "./ReverseCamIcon";
