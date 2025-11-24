@@ -84,7 +84,11 @@ export const waitForFirstNewFrame = (
     pollIntervalMs?: number;
   } = {}
 ) => {
-  const { minNewFrames = 10, timeoutMs = Infinity, pollIntervalMs = 50 } = opts;
+  const {
+    minNewFrames = 10,
+    timeoutMs = 1000 * 60 * 60 * 24,
+    pollIntervalMs = 50,
+  } = opts;
 
   return new Promise<void>((resolve) => {
     let done = false;

@@ -8,8 +8,12 @@ const ParticipantInfo: FC<{ name: string; micState: boolean }> = ({
 }) => {
   return (
     <div className="ParticipantInfo">
-      <span>{name}</span>
-      {!micState && <MicOffIcon width="18px" height="18px" />}
+      <span className="ParticipantInfoName">{name}</span>
+      {!micState && (
+        <span className="ParticipantInfoMic">
+          <MicOffIcon width="18px" height="18px" />
+        </span>
+      )}
     </div>
   );
 };

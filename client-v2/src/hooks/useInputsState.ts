@@ -1,8 +1,5 @@
 import { useState, ChangeEvent } from "react";
 
-// type Input = Record<string, any>;
-// type Input = Record<string, any>;
-
 type Input = {
   initialValues: Record<string, any>;
   validationShema: Record<string, [string, (v: string) => boolean]>;
@@ -32,7 +29,7 @@ const useInputsState: (props: Input) => Output = ({
       if (isValid && errors[name]) {
         setErrors((prev) => {
           delete prev[name];
-          return { ...prev };
+          return prev;
         });
       }
 
@@ -47,7 +44,6 @@ const useInputsState: (props: Input) => Output = ({
     setInputsState((state) => ({ ...state, [name]: value }));
   };
 
-  // return [inputsState, setValue];
   return { values: inputsState, onChange: setValue, errors };
 };
 

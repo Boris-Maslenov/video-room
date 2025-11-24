@@ -106,6 +106,7 @@ const Room = () => {
         screenState={Boolean(devicesStore.screenStream)}
         disabled={disabledActions}
         peersCount={peersCount}
+        peersNames={mediaSoupStore.remotePeers.map((p) => p.name)}
       />
     </div>
   );

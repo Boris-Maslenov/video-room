@@ -71,7 +71,7 @@ class MediaDevicesStore {
         this.allowMic = allowMic;
         this.allowCam = allowCam;
         this.micOn = allowMic;
-        this.camOn = allowCam;
+        this.camOn = false;
       });
 
       // Создаем стрим, который нужен для определения id устройства камеры
