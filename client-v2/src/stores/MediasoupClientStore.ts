@@ -172,6 +172,13 @@ class MediasoupClientStore {
     };
   }
 
+  updateSelfPeer(data: Partial<ClientRemotePeer>) {
+    if (!this._selfPeer) {
+      return;
+    }
+    this._selfPeer = { ...this._selfPeer, ...data };
+  }
+
   manageViewConsumers(activeGroupId: number) {
     const ids = this.root.viewPeer.getViewShema[activeGroupId].map((p) => p.id);
 
@@ -538,6 +545,10 @@ class MediasoupClientStore {
     isScreenShare: boolean = false,
     paused: boolean = false
   ) {
+    if (!this.device) {
+      throw new Error("createConsumer error: device not found");
+    }
+
     if (!this.recvTransport) {
       await this.createRecvTransport();
     }
@@ -657,12 +668,13 @@ class MediasoupClientStore {
    * Подключение к существующей комнате
    */
   async enterRoom(roomId: string, peerName: string) {
+    console.log("enterRoom", roomId, peerName);
     try {
       await this.root.mediaDevices.startMediaTracks();
       // 1 Запрос Rtp Capabilities
       const routerRtpCapabilities = await this.gerRouterRtpCapabilities(roomId);
+      console.log("enterRoom 1", routerRtpCapabilities);
       // 2 создаем пира
-      // TODO: передавать флаги camOn, micOn
       const { data: dataPeer } = await this.root.network.apiSend<Peer>(
         "createPeer",
         {
@@ -673,18 +685,22 @@ class MediasoupClientStore {
         }
       );
 
+      console.log("enterRoom 2", dataPeer);
+
       if (!dataPeer.id || !dataPeer.roomId || !dataPeer.name) {
         throw new Error("enterRoom failed!");
       }
 
       // 3 загружаем Device
       const rtpCapabilities = await this.loadDevice(routerRtpCapabilities);
+      console.log("enterRoom 3", rtpCapabilities);
       // 4 Сервер успешно добавил пира и вернул участников комнаты
       const { remotePeers, peer } = await this.joinRoom(
         roomId,
         dataPeer.id,
         rtpCapabilities
       );
+      console.log("enterRoom 4", remotePeers, peer);
 
       runInAction(() => {
         this.isJoined = true;
@@ -701,26 +717,35 @@ class MediasoupClientStore {
 
       // 5 Создание recvtransport
       await this.createRecvTransport();
+      console.log("enterRoom 5");
       // 6 Подписка на потоки
       await this.recv(this.remotePeers.map(({ id }) => id));
+      console.log("enterRoom 6");
       // 7 отправка потоков
       await this.createSendTransport();
+      console.log("enterRoom 7", this.device);
       const mediaTracks = this.root.mediaDevices.getMediaTracks();
 
       if (mediaTracks.length) {
         await Promise.all(mediaTracks.map((track) => this.send(track)));
       }
+      console.log("enterRoom 8");
 
       await this.root.network.apiSend("peerConnected", this.defaultRoomData);
+      console.log("enterRoom 9");
     } catch (err) {
       this.cleanupMediaSession();
       this.root.mediaDevices.cleanupDevicesSession();
+      this.root.network.cleanupNetworkSession();
       if (err instanceof Error) {
-        this.root.error.setError(err);
+        this.root.error.setError("Ошибка подключения к комнате: " + err);
       }
     }
   }
 
+  /**
+   * Удаляет пира из комнаты
+   */
   deleteRemotePeer(peerId: string) {
     const foundRemotePeer = this.remotePeers.find((p) => p.id === peerId);
     if (foundRemotePeer) {
@@ -729,6 +754,10 @@ class MediasoupClientStore {
       });
     }
     this.remotePeers = this.remotePeers.filter((p) => p.id !== peerId);
+
+    // todo: Провести анализ о необходимости удаления консюмера на стороне backend.
+    // В этой реализации консюмеры которые слушали удаляемого пира остаются в памяти
+    // до выхода текущего пира.
 
     if (
       this.isRemoteScreenActive &&
@@ -886,6 +915,7 @@ class MediasoupClientStore {
       this.networkQuality = networkQuality;
       return;
     }
+    // todo: не обновлять компонент если качество не поменялось
 
     this.remotePeers = this.remotePeers.map((p) =>
       p.id === peerId ? { ...p, networkQuality } : p
@@ -983,7 +1013,6 @@ class MediasoupClientStore {
     this.recvTransport = null;
     this.sendTransport = null;
 
-    console.log(this);
     this.clearRemoteScreen();
   }
 }

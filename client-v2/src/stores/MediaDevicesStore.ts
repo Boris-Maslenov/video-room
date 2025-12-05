@@ -1,6 +1,9 @@
 import { makeAutoObservable, runInAction, observable } from "mobx";
 import { RootStore } from "./RootStore";
-import { safeStop, getPermissions, stopStream } from "../utils/mediaUtils";
+import { getPermissions, stopStream } from "../utils/mediaUtils";
+
+const MOBILE_CAM_DEFAULT = "user";
+
 /**
  * Стор для работы с медиа устройствами
  */
@@ -8,6 +11,8 @@ class MediaDevicesStore {
   root: RootStore;
   stream: MediaStream | null = null;
   screenStream: MediaStream | null = null;
+
+  facingMode: "user" | "environment" = MOBILE_CAM_DEFAULT;
 
   audioTrack: MediaStreamTrack | null = null;
   videoTrack: MediaStreamTrack | null = null;
@@ -86,7 +91,7 @@ class MediaDevicesStore {
           camEnable || micEnable
             ? await navigator.mediaDevices.getUserMedia({
                 audio: micEnable,
-                video: camEnable,
+                video: camEnable && { facingMode: this.facingMode },
               })
             : null;
       } catch (err) {
@@ -122,8 +127,6 @@ class MediaDevicesStore {
       runInAction(() => {
         this.isMediaDevicesLoading = false;
       });
-
-      console.log(this);
     } catch (err) {
       runInAction(() => {
         this.isMediaDevicesLoading = false;
@@ -382,6 +385,7 @@ class MediaDevicesStore {
 
         if (type === "video" && !isScreenTrack) {
           this.videoTrack = null;
+
           this.camOn = false;
           this.cams = [];
           this.allowCam = false;
@@ -412,6 +416,53 @@ class MediaDevicesStore {
 
     this.cleanupTrackListeners.set(track, () => {
       track.removeEventListener("ended", onEnded);
+    });
+  }
+
+  /**
+   * Смена камеры на мобильных устройства
+   */
+  async camReverce() {
+    const curFacingMode = this.facingMode;
+    let tempStreem: MediaStream | null = null;
+
+    try {
+      tempStreem = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: curFacingMode === "user" ? "environment" : "user",
+        },
+        audio: false,
+      });
+    } catch (err) {
+      console.warn("front camera failed, fallback to old camera:");
+    }
+
+    if (!tempStreem) {
+      return;
+    }
+
+    const newVideoTrack = tempStreem.getVideoTracks()[0];
+    const oldVideoTrack = this.stream?.getVideoTracks()[0];
+
+    if (oldVideoTrack) {
+      this.stream?.addTrack(newVideoTrack);
+      this.stream?.removeTrack(oldVideoTrack);
+      oldVideoTrack.stop();
+    }
+
+    await this.root.mediaSoupClient.videoProducer?.replaceTrack({
+      track: newVideoTrack,
+    });
+
+    tempStreem.removeTrack(newVideoTrack);
+    tempStreem = null;
+
+    runInAction(() => {
+      this.facingMode = curFacingMode === "user" ? "environment" : "user";
+
+      this.root.mediaSoupClient.updateSelfPeer({
+        mediaStream: new MediaStream([newVideoTrack]),
+      });
     });
   }
 

@@ -36,9 +36,11 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
       root.viewPeer.peersCount = count;
     };
     const onActiveSpeaker = (peerIds: string[]) => {
+      console.log("onActiveSpeaker", peerIds);
       root.mediaSoupClient.setActiveSpeakers(peerIds);
     };
     const onUpdateNetworkQuality = (peerId: string, quality: QualityData) => {
+      console.log("onUpdateNetworkQuality", peerId, quality);
       root.mediaSoupClient.updateRemoteNetworkQuality(peerId, quality);
     };
 

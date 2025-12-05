@@ -14,7 +14,7 @@ import { WS_IP } from "../config";
 
 class SocketStore {
   root: RootStore;
-  private initial: boolean;
+  initial: boolean;
   socket: Socket<ServerEvents, ClientEvents>;
   apiSend: SocketSendType;
   eventBus: { [K in keyof ServerEvents]+?: ServerEvents[K][] } = {};
@@ -25,7 +25,18 @@ class SocketStore {
     this.socket = io(WS_IP);
     this.apiSend = socketPromise(this.socket);
     this.initial = false;
-    makeAutoObservable(this, {}, { autoBind: true });
+    makeAutoObservable(
+      this,
+      {
+        // эти поля НЕ отслеживаем
+        root: false,
+        socket: false,
+        apiSend: false,
+        eventBus: false,
+        initial: false,
+      },
+      { autoBind: true }
+    );
   }
 
   setNetStatus(status: NetworkPeerStatus) {
@@ -37,7 +48,6 @@ class SocketStore {
       return;
     }
 
-    this.initial = true;
     this.socket.on("peer:closed", this.handlePeerClosed);
     this.socket.on("peer:ready", this.handlePeerReady);
     this.socket.on("peer:camOff", this.handleCamOff);
@@ -59,12 +69,16 @@ class SocketStore {
     this.socket.on("connect_error", () => {
       this.setNetStatus("offline");
       this.root.mediaSoupClient.cleanupMediaSession();
+      this.cleanupNetworkSession();
     });
 
     this.socket.on("disconnect", () => {
       this.setNetStatus("offline");
       this.root.mediaSoupClient.cleanupMediaSession();
+      this.cleanupNetworkSession();
     });
+
+    this.initial = true;
   }
 
   private emit<K extends keyof ParamsServerEvents>(
@@ -119,7 +133,7 @@ class SocketStore {
   }
 
   cleanupNetworkSession() {
-    if (!this.initial) return;
+    console.log("cleanupNetworkSession");
     this.initial = false;
     this.socket.off("peer:closed", this.handlePeerClosed);
     this.socket.off("peer:ready", this.handlePeerReady);
@@ -136,6 +150,7 @@ class SocketStore {
     this.socket.off("room:activeSpeaker", this.handleActiveSpeaker);
     // защита от утечек при HMR
     this.socket.disconnect();
+    this.socket.close();
     this.eventBus = {};
     this.root.mediaSoupClient.cleanupMediaSession();
   }

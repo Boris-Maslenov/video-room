@@ -9,13 +9,15 @@ import ActionPanel, { ActionTypes } from "../action-panel/ActionPanel";
 import ScreenSharePresentation from "../screen-presentation/ScreenSharePresentation";
 import "./Room.styles.scss";
 import MediaSlider from "../media-slider/MediaSlider";
+import { isMobileDevice } from "../../utils/isMobileDevice";
 
 import { MAX_PEERS_IN_SLIDE } from "../../config";
 
 const Room = () => {
+  console.log("Render Room");
   const devicesStore = useDevicesStore();
   const mediaSoupStore = useMediaSoupStore();
-  const viewPeer = useViewPeerStore();
+  const viewPeerStore = useViewPeerStore();
   const mics = devicesStore.mics;
   const cams = devicesStore.cams;
   const allowMic = devicesStore.allowMic;
@@ -23,9 +25,9 @@ const Room = () => {
   const isSelfScreenShare = Boolean(devicesStore.screenStream);
   const isRemoteScreenMode = mediaSoupStore.isRemoteScreenActive;
   const screenShareMode = isSelfScreenShare || isRemoteScreenMode;
-  const peersCount = viewPeer.peersCount;
-  const viewShema = viewPeer.getViewShema;
-  const activeGroup = viewPeer.activePeerGroup;
+  const peersCount = viewPeerStore.peersCount;
+  const viewShema = viewPeerStore.getViewShema;
+  const activeGroup = viewPeerStore.activePeerGroup;
   const disabledActions: Partial<Record<ActionTypes, boolean>> = useMemo(() => {
     return {
       screen: isRemoteScreenMode,
@@ -42,6 +44,13 @@ const Room = () => {
       }
       case "cam": {
         devicesStore.toggleCam(!devicesStore.camOn);
+        break;
+      }
+      case "camReverce": {
+        if (isMobileDevice()) {
+          console.log("camReverce");
+          devicesStore.camReverce();
+        }
         break;
       }
       case "screen": {
@@ -63,7 +72,7 @@ const Room = () => {
   }, [activeGroup]);
 
   const changeOrUpdateSlideHandle = useCallback((group: number) => {
-    viewPeer.activePeerGroup = group;
+    viewPeerStore.activePeerGroup = group;
   }, []);
 
   const getMaxVisiblePeers = (width: number, height: number): number => {
@@ -85,8 +94,7 @@ const Room = () => {
           viewShema={viewShema}
           onChangeOrUpdateSlide={changeOrUpdateSlideHandle}
           onResize={(width, height) => {
-            console.log(width, height);
-            viewPeer.maxPeersInSlide = getMaxVisiblePeers(width, height);
+            viewPeerStore.maxPeersInSlide = getMaxVisiblePeers(width, height);
           }}
         />
         {screenShareMode && (

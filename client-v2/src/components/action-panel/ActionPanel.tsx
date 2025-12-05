@@ -47,7 +47,13 @@ type ActionPanelProps = {
   disabled: Partial<Record<ActionTypes, boolean>>;
 };
 
-export type ActionTypes = "mic" | "cam" | "screen" | "shared" | "exit";
+export type ActionTypes =
+  | "mic"
+  | "cam"
+  | "camReverce"
+  | "screen"
+  | "shared"
+  | "exit";
 
 const ActionPanel: FC<ActionPanelProps> = ({
   onPanelAction,
@@ -67,7 +73,7 @@ const ActionPanel: FC<ActionPanelProps> = ({
 
   const longPressPropsForCamRev = useLongPress({
     onLongPress: () => setReversCamView((state) => !state),
-    onClick: () => console.log("REVERSE"),
+    onClick: () => onPanelAction("camReverce"),
   });
 
   return (

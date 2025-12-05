@@ -15,6 +15,7 @@ import { useMediaSoupStore } from "../../context/StoresProvider";
 import { QualitySignalIcon } from "../icons/index";
 
 const Participant: FC<{ peer: ClientRemotePeer }> = observer(({ peer }) => {
+  console.log("Render Participant", peer.name);
   const mediaSoupStore = useMediaSoupStore();
   const mediaElRef = useRef<HTMLVideoElement>(null);
   const stream = peer.mediaStream;

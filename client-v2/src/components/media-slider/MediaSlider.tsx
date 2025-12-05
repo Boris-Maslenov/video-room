@@ -16,6 +16,7 @@ const MediaSlider: FC<PropsType> = ({
   onChangeOrUpdateSlide,
   onResize,
 }) => {
+  console.log("MediaSlider", viewShema);
   return (
     <Swiper
       speed={600}
