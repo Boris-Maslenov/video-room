@@ -46,14 +46,19 @@ const routes: Partial<ClientEvents> = {
   toggleMic,
 };
 
+const disconnect = (reason: string, io: Server, socket: Socket) => {
+  log(reason, socket.id, "red");
+  const ids = Array.from(io.sockets.sockets.keys());
+  log("all: ", ids, "red");
+  closePeer(socket);
+};
+
 export const createSocketRouter = (io: Server) => {
   io.on("connection", (socket: Socket<ClientEvents, ServerEvents>) => {
-    console.log("io.connection: ", socket.id);
-    const ids = [...io.sockets.sockets.keys()]; // Map<string, Socket> → массив id
-    log("all: ", ids, "green");
-    socket.on("disconnect", function (reason) {
-      log(reason, socket.id, "red");
-      const ids = [...io.sockets.sockets.keys()];
+    // socket.on("disconnect", (r) => disconnect.bind(null, [r, io, socket]));
+    socket.on("disconnect", (r) => {
+      log(r, socket.id, "red");
+      const ids = Array.from(io.sockets.sockets.keys());
       log("all: ", ids, "red");
       closePeer(socket);
     });

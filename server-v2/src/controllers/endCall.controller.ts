@@ -3,6 +3,7 @@ import { safeClose } from "../utils/mediaUtils";
 import { HandleParameters, ServerEvents } from "../types";
 import { getDefaultRoomData } from "../utils/dataUtils";
 import { deletePeer } from "../models/room";
+import { log } from "../utils/dataUtils";
 
 /**
  * Клиент нажал кнопку завершить звонок
@@ -10,10 +11,17 @@ import { deletePeer } from "../models/room";
 // TODO: рассмотреть объединение endCallController и closePeerController
 export const endCall: (...args: HandleParameters<"endCall">) => void =
   async function (this: Socket<{}, ServerEvents>, data, callback) {
+    log(`endCall controller start`, "red");
     try {
       const socket = this;
       const { peerId, roomId } = data;
       const { room, peer } = getDefaultRoomData(peerId, roomId);
+
+      log(
+        "до удаления",
+        room.peers.map((p) => p.name),
+        "red"
+      );
 
       safeClose(
         peer.audioProducer,
@@ -31,6 +39,13 @@ export const endCall: (...args: HandleParameters<"endCall">) => void =
         .filter((c) => c.appData.peerId !== peer.id);
 
       deletePeer(room.id, peer.id);
+
+      log(
+        "после удаления",
+        room.peers.map((p) => p.name),
+        room.consumers.map((p) => p.id),
+        "red"
+      );
 
       const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);
 

@@ -8,6 +8,8 @@ export const createConsumer: (
     const { roomId, peerId, producerId, paused } = data;
     // peerId = remotePeerId id пира, к которому привязан producerId
 
+    log(roomId, peerId, producerId, paused);
+
     if (!producerId) {
       const message = "producerId обязательное поле";
       callback?.({

@@ -19,8 +19,8 @@ type ReturnType = { transportParams: TransportParams; transport: Transport };
 
 const local = [
   {
-    ip: "192.168.0.106",
-    announcedIp: "192.168.0.106",
+    ip: "192.168.0.103",
+    announcedIp: "192.168.0.103",
   },
 ];
 
