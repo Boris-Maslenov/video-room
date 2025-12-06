@@ -22,7 +22,7 @@ class SocketStore {
 
   constructor(root: RootStore) {
     this.root = root;
-    this.socket = io(WS_IP);
+    this.socket = io(WS_IP, { autoConnect: false });
     this.apiSend = socketPromise(this.socket);
     this.initial = false;
     makeAutoObservable(
@@ -48,6 +48,8 @@ class SocketStore {
       return;
     }
 
+    this.socket.connect();
+
     this.socket.on("peer:closed", this.handlePeerClosed);
     this.socket.on("peer:ready", this.handlePeerReady);
     this.socket.on("peer:camOff", this.handleCamOff);
@@ -69,13 +71,11 @@ class SocketStore {
     this.socket.on("connect_error", () => {
       this.setNetStatus("offline");
       this.root.mediaSoupClient.cleanupMediaSession();
-      this.cleanupNetworkSession();
     });
 
     this.socket.on("disconnect", () => {
       this.setNetStatus("offline");
       this.root.mediaSoupClient.cleanupMediaSession();
-      this.cleanupNetworkSession();
     });
 
     this.initial = true;

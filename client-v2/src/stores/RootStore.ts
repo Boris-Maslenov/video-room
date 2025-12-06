@@ -14,9 +14,9 @@ export class RootStore {
   constructor() {
     this.mediaSoupClient = new MediaSoupClientStore(this);
     this.mediaDevices = new MediaDevicesStore(this);
-    this.network = new SocketStore(this);
     this.error = new ErrorStore(this);
     this.viewPeer = new PeerCarouselStore(this);
+    this.network = new SocketStore(this);
   }
 }
 

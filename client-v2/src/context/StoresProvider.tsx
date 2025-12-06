@@ -1,12 +1,18 @@
 import {
   createContext,
   ReactNode,
-  useMemo,
   useContext,
   useEffect,
+  useMemo,
 } from "react";
 import { RootStore, createRootStore } from "../stores/RootStore";
 import { QualityData, RemotePeer } from "../stores/MediasoupClientStore";
+
+// if (import.meta.hot) {
+//   import.meta.hot.dispose(() => {
+//     root.network.cleanupNetworkSession();
+//   });
+// }
 
 const errorMesage = "Root store not found!";
 

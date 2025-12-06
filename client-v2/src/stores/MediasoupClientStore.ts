@@ -562,8 +562,9 @@ class MediasoupClientStore {
       rtpCapabilities: this.device.rtpCapabilities,
       producerId,
       roomId,
-      peerId: localPeerId,
+      peerId: localPeerId, // peer потребитель
       paused,
+      exporterId: remotePeerId, // peer поставщик
     });
 
     if (!this.recvTransport) {
@@ -736,7 +737,6 @@ class MediasoupClientStore {
     } catch (err) {
       this.cleanupMediaSession();
       this.root.mediaDevices.cleanupDevicesSession();
-      this.root.network.cleanupNetworkSession();
       if (err instanceof Error) {
         this.root.error.setError("Ошибка подключения к комнате: " + err);
       }
@@ -754,10 +754,6 @@ class MediasoupClientStore {
       });
     }
     this.remotePeers = this.remotePeers.filter((p) => p.id !== peerId);
-
-    // todo: Провести анализ о необходимости удаления консюмера на стороне backend.
-    // В этой реализации консюмеры которые слушали удаляемого пира остаются в памяти
-    // до выхода текущего пира.
 
     if (
       this.isRemoteScreenActive &&
