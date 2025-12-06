@@ -2,6 +2,7 @@ import { Socket } from "socket.io";
 import { HandleParameters, ServerEvents } from "../types";
 import { getDefaultRoomData } from "../utils/dataUtils";
 import { safeClose } from "../utils/mediaUtils";
+import { updatePeer } from "../models/room";
 
 export const toggleMic: (...args: HandleParameters<"toggleMic">) => void =
   async function (this: Socket<{}, ServerEvents>, data, callback) {
@@ -14,18 +15,20 @@ export const toggleMic: (...args: HandleParameters<"toggleMic">) => void =
         "consumerResumeController"
       );
 
-      if (!micOn) {
-        const producerId = peer.audioProducer.id;
-        room.consumers = room.consumers
-          .map((c) => {
-            c.producerId === producerId && safeClose(c);
-            return c;
-          })
-          .filter((c) => c.producerId !== producerId);
+      // if (!micOn) {
+      //   const producerId = peer.audioProducer.id;
+      //   room.consumers = room.consumers
+      //     .map((c) => {
+      //       c.producerId === producerId && safeClose(c);
+      //       return c;
+      //     })
+      //     .filter((c) => c.producerId !== producerId);
 
-        safeClose(peer.audioProducer);
-        peer.audioProducer = null;
-      }
+      //   safeClose(peer.audioProducer);
+      //   peer.audioProducer = null;
+      // }
+
+      updatePeer(roomId, { ...peer, micOn });
 
       const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);
 

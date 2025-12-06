@@ -101,7 +101,13 @@ export const deletePeer = (roomId: string, peerId: string) => {
 export const getAllProducers = (roomId: string): Producer[] => {
   const room = getRoom(roomId);
   return room.peers.reduce((acc, cur) => {
-    return acc.concat(cur.audioProducer, cur.videoProducer);
+    acc.push(
+      ...[cur.audioProducer, cur.videoProducer, cur.screenProducer].filter(
+        Boolean
+      )
+    );
+
+    return acc;
   }, []);
 };
 
@@ -116,9 +122,11 @@ export const findProducer = (
   let result = null;
 
   for (const peer of room.peers) {
-    const found = [peer.audioProducer, peer.videoProducer].find(
-      ({ id }) => id === producerId
-    );
+    const found = [
+      peer.audioProducer,
+      peer.videoProducer,
+      peer.screenProducer,
+    ].find(({ id }) => id === producerId);
     if (found) {
       result = found;
       break;

@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import { safeClose } from "../utils/mediaUtils";
+import { cleanupConsumers, safeClose } from "../utils/mediaUtils";
 import { HandleParameters, ServerEvents } from "../types";
 import { getDefaultRoomData } from "../utils/dataUtils";
 import { deletePeer } from "../models/room";
@@ -17,12 +17,6 @@ export const endCall: (...args: HandleParameters<"endCall">) => void =
       const { peerId, roomId } = data;
       const { room, peer } = getDefaultRoomData(peerId, roomId);
 
-      log(
-        "до удаления",
-        room.peers.map((p) => p.name),
-        "red"
-      );
-
       safeClose(
         peer.audioProducer,
         peer.videoProducer,
@@ -31,12 +25,18 @@ export const endCall: (...args: HandleParameters<"endCall">) => void =
         peer.recvTransport
       );
 
-      room.consumers = room.consumers
-        .map((c) => {
-          c.appData.peerId === peer.id && safeClose(c);
-          return c;
-        })
-        .filter((c) => c.appData.peerId !== peer.id);
+      /**
+       * тут должно отработать событие close на продюсере и подчистить все консюмены
+       */
+
+      // room.consumers = room.consumers
+      //   .map((c) => {
+      //     c.appData.peerId === peer.id && safeClose(c);
+      //     return c;
+      //   })
+      //   .filter((c) => c.appData.peerId !== peer.id);
+
+      room.consumers = cleanupConsumers(room.consumers, peer.id);
 
       deletePeer(room.id, peer.id);
 

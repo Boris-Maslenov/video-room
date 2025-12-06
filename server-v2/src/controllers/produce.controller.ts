@@ -1,6 +1,6 @@
 import { getPeer, getRoom, updatePeer } from "../models/room";
 import { HandleParameters } from "../types";
-import { subscribeProdQuaity } from "../utils/mediaUtils";
+import { subscribeProdClose, subscribeProdQuaity } from "../utils/mediaUtils";
 
 export const produce: (...args: HandleParameters<"produce">) => void =
   async function (data, callback) {
@@ -23,6 +23,8 @@ export const produce: (...args: HandleParameters<"produce">) => void =
 
           subscribeProdQuaity(room, peer, peer.videoProducer, "video", io);
 
+          subscribeProdClose(room, peer, peer.videoProducer);
+
           callback?.({
             ok: true,
             data: { id: peer.videoProducer.id },
@@ -42,6 +44,8 @@ export const produce: (...args: HandleParameters<"produce">) => void =
 
           subscribeProdQuaity(room, peer, peer.audioProducer, "audio", io);
 
+          subscribeProdClose(room, peer, peer.audioProducer);
+
           callback?.({
             ok: true,
             data: { id: peer.audioProducer.id },
@@ -54,6 +58,9 @@ export const produce: (...args: HandleParameters<"produce">) => void =
             rtpParameters,
             appData: { source: "screen" },
           });
+
+          subscribeProdClose(room, peer, peer.screenProducer);
+
           callback?.({
             ok: true,
             data: { id: peer.screenProducer.id },

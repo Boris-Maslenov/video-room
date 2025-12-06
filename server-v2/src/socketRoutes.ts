@@ -47,7 +47,7 @@ const routes: Partial<ClientEvents> = {
 };
 
 const disconnect = (reason: string, io: Server, socket: Socket) => {
-  log(reason, socket.id, "red");
+  log("disconnect: ", reason, socket.id, "red");
   const ids = Array.from(io.sockets.sockets.keys());
   log("all: ", ids, "red");
   closePeer(socket);
@@ -55,12 +55,10 @@ const disconnect = (reason: string, io: Server, socket: Socket) => {
 
 export const createSocketRouter = (io: Server) => {
   io.on("connection", (socket: Socket<ClientEvents, ServerEvents>) => {
-    // socket.on("disconnect", (r) => disconnect.bind(null, [r, io, socket]));
+    log("connection", socket.id, "green");
+
     socket.on("disconnect", (r) => {
-      log(r, socket.id, "red");
-      const ids = Array.from(io.sockets.sockets.keys());
-      log("all: ", ids, "red");
-      closePeer(socket);
+      disconnect(r, io, socket);
     });
 
     for (const key in routes) {

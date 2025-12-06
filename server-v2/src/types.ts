@@ -115,6 +115,7 @@ export type ClientEvents = {
       rtpCapabilities: RtpCapabilities;
       producerId: string;
       paused: boolean;
+      exporterId: string;
     },
     callback: (
       response: SocketResponse<{
@@ -230,6 +231,8 @@ export type PeerDto = Omit<
   | "recvTransport"
 >;
 
+export type AppConsumer = Consumer<{ peerId: string; exporterId: string }>;
+
 export type Room = {
   id: string;
   peers: Array<Peer>;
@@ -237,7 +240,7 @@ export type Room = {
   createdAt: Date;
   worker: Worker;
   router: Router;
-  consumers: Consumer<{ peerId: string }>[];
+  consumers: AppConsumer[];
   audioObserver: AudioLevelObserver;
 };
 

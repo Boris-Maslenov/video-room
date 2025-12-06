@@ -1,6 +1,6 @@
 import { Socket } from "socket.io";
 import { HandleParameters, ServerEvents } from "../types";
-import { getDefaultRoomData } from "../utils/dataUtils";
+import { getDefaultRoomData, log } from "../utils/dataUtils";
 import { safeClose } from "../utils/mediaUtils";
 
 /**
@@ -15,14 +15,17 @@ export const screenOff: (...args: HandleParameters<"screenOff">) => void =
       const screenProdId = peer.screenProducer.id;
 
       safeClose(peer.screenProducer);
+      /**
+       * тут должно отработать событие close на продюсере и подчистить все консюмены
+       */
       peer.screenProducer = null;
 
-      room.consumers = room.consumers
-        .map((c) => {
-          c.producerId === screenProdId && safeClose(c);
-          return c;
-        })
-        .filter((c) => c.producerId !== screenProdId);
+      // room.consumers = room.consumers
+      //   .map((c) => {
+      //     c.producerId === screenProdId && safeClose(c);
+      //     return c;
+      //   })
+      //   .filter((c) => c.producerId !== screenProdId);
 
       const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);
 

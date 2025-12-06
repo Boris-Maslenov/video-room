@@ -8,24 +8,15 @@ import { safeClose } from "../utils/mediaUtils";
  */
 export const camOff: (...args: HandleParameters<"camOff">) => void =
   async function (this: Socket<{}, ServerEvents>, data, callback) {
-    log("camOff", "yellow");
     try {
       const socket = this;
       const { peerId, roomId } = data;
       const { room, peer } = getDefaultRoomData(peerId, roomId);
       const producerId = peer.videoProducer.id;
-
-      room.consumers = room.consumers
-        .map((c) => {
-          c.producerId === producerId && safeClose(c);
-          return c;
-        })
-        .filter((c) => c.producerId !== producerId);
+      const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);
 
       safeClose(peer.videoProducer);
       peer.videoProducer = null;
-
-      const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);
 
       if (ids.length > 0) {
         socket.to(ids).emit("peer:camOff", peer.id, producerId);

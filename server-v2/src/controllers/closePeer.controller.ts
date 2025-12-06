@@ -1,6 +1,6 @@
 import { Socket } from "socket.io";
 import { deletePeer, findPeerBySocketId, getRoom } from "../models/room";
-import { safeClose } from "../utils/mediaUtils";
+import { cleanupConsumers, safeClose } from "../utils/mediaUtils";
 
 /**
  * Неожиданный обрыв сокета
@@ -28,16 +28,10 @@ export const closePeer: (socket: Socket) => boolean = (socket) => {
       foundPeer.recvTransport
     );
 
-    room.consumers = room.consumers
-      .map((c) => {
-        c.appData.peerId === foundPeer.id && safeClose(c);
-        return c;
-      })
-      .filter((c) => c.appData.peerId !== foundPeer.id);
-
-    deletePeer(room.id, foundPeer.id);
-
     const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);
+
+    room.consumers = cleanupConsumers(room.consumers, foundPeer.id);
+    deletePeer(room.id, foundPeer.id);
 
     if (ids.length > 0) {
       socket.to(ids).emit("peer:closed", foundPeer.id);

@@ -1,4 +1,4 @@
-import { NetworkQuality, Room, Peer } from "../types";
+import { NetworkQuality, Room, Peer, AppConsumer } from "../types";
 import { Server } from "socket.io";
 import { getRoom, getPeer, updatePeer } from "../models/room";
 import { log } from "./dataUtils";
@@ -90,5 +90,57 @@ export const subscribeProdQuaity = (
         [qKey]: score,
       });
     }
+  });
+};
+
+export const subscribeProdClose = (
+  room: Room,
+  peer: Peer,
+  producer: Producer
+) => {
+  producer.observer.once("close", () => {
+    const r = getRoom(room.id);
+    const foundPeer = r.peers.find((p) => p.id === peer.id);
+
+    if (!foundPeer) {
+      return;
+    }
+
+    if (foundPeer.audioProducer?.id === producer.id) {
+      foundPeer.audioProducer = null;
+    }
+
+    if (foundPeer.videoProducer?.id === producer.id) {
+      foundPeer.videoProducer = null;
+    }
+
+    if (foundPeer.screenProducer?.id === producer.id) {
+      foundPeer.screenProducer = null;
+    }
+
+    r.consumers = r.consumers.filter((c) => {
+      const ok = c.producerId !== producer.id;
+
+      if (!ok) {
+        safeClose(c);
+      }
+
+      return ok;
+    });
+  });
+};
+
+export const cleanupConsumers = (
+  consumers: AppConsumer[],
+  pId: string
+): AppConsumer[] => {
+  return consumers.filter((c) => {
+    const ok = c.appData.exporterId !== pId && c.appData.peerId !== pId;
+
+    if (!ok) {
+      safeClose(c);
+    }
+
+    return ok;
   });
 };

@@ -5,10 +5,8 @@ export const createConsumer: (
   ...args: HandleParameters<"createConsumer">
 ) => void = async function (data, callback) {
   try {
-    const { roomId, peerId, producerId, paused } = data;
+    const { roomId, peerId, producerId, paused, exporterId } = data;
     // peerId = remotePeerId id пира, к которому привязан producerId
-
-    log(roomId, peerId, producerId, paused);
 
     if (!producerId) {
       const message = "producerId обязательное поле";
@@ -16,6 +14,7 @@ export const createConsumer: (
         ok: false,
         error: { message },
       });
+
       throw new Error(message);
     }
 
@@ -28,6 +27,7 @@ export const createConsumer: (
         ok: false,
         error: { message },
       });
+
       throw new Error(message);
     }
 
@@ -35,7 +35,7 @@ export const createConsumer: (
       producerId,
       rtpCapabilities,
       paused,
-      appData: { peerId },
+      appData: { peerId, exporterId },
     });
 
     room.consumers.push(newConsumer);
