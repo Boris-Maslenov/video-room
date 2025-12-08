@@ -8,10 +8,10 @@ const DefaultDialogActions: FC<{
 }> = ({ onOpen, onSucces, disabledSuccesButton = false }) => {
   return (
     <div className="DialogActions">
-      <Button onClick={() => onOpen(false)} variant="outline">
+      <Button onClick={() => onOpen(false)} variant="outline" size="large">
         Отменить
       </Button>
-      <Button onClick={onSucces} disabled={disabledSuccesButton}>
+      <Button onClick={onSucces} disabled={disabledSuccesButton} size="large">
         Подтвердить
       </Button>
     </div>

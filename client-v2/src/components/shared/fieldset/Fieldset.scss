@@ -1,8 +1,8 @@
 .Fieldset {
   display: flex;
-  gap: 20px;
-  align-items: center;
+  gap: 10px;
   margin-bottom: 15px;
+  flex-direction: column;
 }
 
 .Label {

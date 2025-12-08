@@ -1,6 +1,9 @@
+@use "../../variables.style" as *;
+
 .Participant {
   position: relative;
-  background: #3f2244;
+  // background: #3f2244;
+  background: $partipicat-bg-color;
   border-radius: 6px;
   min-height: 0;
   max-height: 100%;

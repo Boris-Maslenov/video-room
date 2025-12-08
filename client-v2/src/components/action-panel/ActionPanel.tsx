@@ -21,11 +21,11 @@ const iconSize = {
   height: "19px",
 };
 
-const MicSwitch: FC<{ on: boolean }> = ({ on }) => {
+export const MicSwitch: FC<{ on: boolean }> = ({ on }) => {
   return on ? <MicLevel /> : <MicOffIcon {...iconSize} />;
 };
 
-const CamSwitch: FC<{ on: boolean }> = ({ on }) => {
+export const CamSwitch: FC<{ on: boolean }> = ({ on }) => {
   return on ? <CamOnIcon {...iconSize} /> : <CamOffIcon {...iconSize} />;
 };
 

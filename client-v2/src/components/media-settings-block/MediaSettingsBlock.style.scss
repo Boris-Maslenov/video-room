@@ -1,5 +1,5 @@
 .MediaSettings {
-  background-color: #e2e2e2;
+  background-color: var(--gray-200);
   padding: 15px 10px;
   border-radius: 8px;
   position: relative;
@@ -16,10 +16,17 @@
   position: absolute;
   width: 100%;
   height: 100%;
-  background: #9e9e9e;
+  background: var(--gray-400);
   left: 0;
   top: 0;
   z-index: 11;
   border-radius: inherit;
-  opacity: 0.9;
+  opacity: 1;
+}
+
+.end-item {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 7px;
 }

@@ -1,3 +1,5 @@
+@use "../../../variables.style" as *;
+
 .Button {
   color: #fff;
   display: flex;
@@ -8,11 +10,11 @@
   font-size: 14px;
 
   &.variant-classic {
-    border: 1px solid #806491;
+    border: 1px solid $btn-bg-color;
   }
 
   &.variant-outline {
-    border: 1px solid #806491;
+    border: 1px solid $btn-bg-color;
     color: #111;
   }
 
@@ -34,11 +36,11 @@
   }
 
   &.color-default {
-    background: #806491;
+    background: $btn-bg-color;
     color: #fff;
     &:hover:not(:disabled) {
-      background: #7c5495;
-      border-color: #7c5495;
+      background: $btn-bg-color-hover;
+      border-color: $btn-bg-color-hover;
     }
   }
 

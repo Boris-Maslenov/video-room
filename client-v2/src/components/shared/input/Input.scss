@@ -6,15 +6,16 @@
   height: 35px;
   position: relative;
   & input {
+    font-family: var(--font-family);
     display: block;
     width: 100%;
     font-size: 15px;
     padding: 0 10px;
     padding-right: 30px;
-    font-family: var(--font-family);
     line-height: 1;
     box-shadow: 0 0 0 1px #c2b5f5;
     border-radius: 4px;
+    height: 38px;
     &:focus {
       box-shadow: 0 0 0 2px #aa99ec;
     }

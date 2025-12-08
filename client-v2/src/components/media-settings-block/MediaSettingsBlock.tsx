@@ -5,6 +5,7 @@ import { useDevicesStore } from "../../context/StoresProvider";
 import VRSelect from "../select/VRSelect";
 import VRSwitch from "../shared/switch/Switch";
 import Loader from "../shared/loader/Loader";
+import { CamSwitch, MicSwitch } from "../action-panel/ActionPanel";
 
 const MediaSettingsBlock: FC = () => {
   const devicesStore = useDevicesStore();
@@ -62,7 +63,34 @@ const MediaSettingsBlock: FC = () => {
           />
         </div>
       </div>
+
       <div className="MediaSettingsRow">
+        <div className="Col Col-50">Включить устройство</div>
+        <div className="Col Col-50">
+          <div className="end-item">
+            <button
+              className="IconButton"
+              onClick={() => devicesStore.toggleMic(!micOn)}
+              disabled={!allowMic}
+              title={
+                micOn && allowMic ? "Выключить микрофон" : "Включить микрофон"
+              }
+            >
+              <MicSwitch on={micOn && allowMic} />
+            </button>
+            <button
+              className="IconButton"
+              onClick={() => devicesStore.toggleCam(!camOn)}
+              disabled={!allowCam}
+              title={!allowCam ? "Выключить камеру" : "Включить камеру"}
+            >
+              <CamSwitch on={camOn && allowCam} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* <div className="MediaSettingsRow">
         <div className="Col Col-80">
           <span className="TextEllipsis">Включить камеру</span>
         </div>
@@ -89,7 +117,7 @@ const MediaSettingsBlock: FC = () => {
             }}
           />
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

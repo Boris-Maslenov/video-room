@@ -119,6 +119,8 @@ class MediaDevicesStore {
           : null;
       });
 
+      console.log("this.allMediaDevices", this.allMediaDevices);
+
       // закрываем временный видео стрим
       stopStream(initStream);
 

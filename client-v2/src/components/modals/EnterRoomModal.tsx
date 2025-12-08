@@ -31,9 +31,10 @@ const EnterRoomModal: FC<PropsType> = ({
       <MediaSettingsBlock />
       <div className="fields-container">
         <Fieldset
+          label={"Введите имя"}
           inputProps={{
             name: "peerName",
-            placeholder: "Ваше Имя",
+            placeholder: "Борис Масленов",
             onChange: onChange,
             error: errors.peerName,
           }}

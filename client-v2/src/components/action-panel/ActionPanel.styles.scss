@@ -1,3 +1,5 @@
+@use "../../variables.style" as *;
+
 .ActionsPanel {
   flex: 0 0 auto;
   height: 80px;
@@ -16,14 +18,14 @@
 }
 
 .IconButton {
-  background-color: #3c2647;
+  background-color: $iconBtn-bg-color;
   color: white;
   width: 48px;
   height: 48px;
   border-radius: 12px;
   cursor: pointer;
   &:hover {
-    background-color: #452c52;
+    background-color: $iconBtn-bg-color-hover;
   }
 
   &.color-red {
