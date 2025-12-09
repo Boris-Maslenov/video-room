@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef } from "react";
+import { FC, useEffect, useRef, useMemo } from "react";
 import { calcRMS, mapLevelToValue } from "../../utils/calcRMS";
 import { useDevicesStore } from "../../context/StoresProvider";
 import { observer } from "mobx-react-lite";
@@ -11,34 +11,44 @@ const BOOSTER = 10;
 export const MicLevel: FC = observer(() => {
   const deviseStore = useDevicesStore();
   const track = deviseStore.audioTrack;
-
   const levelElem = useRef<SVGRectElement>(null);
+
   // создаём аудиоконтекст
   const ctxRef = useRef<AudioContext>(new AudioContext());
 
+  useEffect(() => {
+    if (!ctxRef.current) {
+      ctxRef.current = new AudioContext();
+    }
+  }, [track]);
+
   // узел-источник: стрим
-  const sourceRef = useRef(
-    track && track.readyState !== "ended"
+  const source = useMemo(() => {
+    return track && track.readyState !== "ended"
       ? ctxRef.current.createMediaStreamSource(new MediaStream([track]))
-      : undefined
-  );
+      : undefined;
+  }, [track]);
 
   // узел-анализатор
-  const analyserRef = useRef(ctxRef.current.createAnalyser());
+  const analyser = useMemo(() => {
+    return ctxRef.current?.createAnalyser();
+  }, [source]);
 
   useEffect(() => {
-    // присоединяем анализатор к источнику
-    if (sourceRef.current) {
-      sourceRef.current.connect(analyserRef.current);
+    if (!track || !source || !analyser) {
+      return;
     }
+
+    // присоединяем анализатор к источнику
+    source.connect(analyser);
 
     let rafId: number;
     let prevTick: number = 0;
-    const data = new Float32Array(analyserRef.current.fftSize);
+    const data = new Float32Array(analyser.fftSize);
 
     const tick = (timeStamp: number) => {
       if (timeStamp - prevTick > 200) {
-        analyserRef.current.getFloatTimeDomainData(data);
+        analyser.getFloatTimeDomainData(data);
         const rms = calcRMS(data);
 
         if (rms < NOISE_LEVEL) {
@@ -65,14 +75,13 @@ export const MicLevel: FC = observer(() => {
     return () => {
       try {
         cancelAnimationFrame(rafId);
-        sourceRef.current?.disconnect();
-        sourceRef.current = undefined;
-        ctxRef.current.close();
+        source?.disconnect();
+        ctxRef.current?.close();
         // @ts-ignore
         ctxRef.current = undefined;
       } catch (err) {}
     };
-  }, []);
+  }, [track]);
 
   return (
     <svg
