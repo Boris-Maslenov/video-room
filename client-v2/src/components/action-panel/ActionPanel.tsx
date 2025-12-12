@@ -13,6 +13,7 @@ import {
 import PeersCount from "../peers-count/PeersCount";
 import { MicLevel } from "../mic-level/MicLevel";
 import HVPopover from "../shared/popover/Popover";
+import Timer from "../timer/Timer";
 
 import { useLongPress } from "../../hooks/useLongPress";
 
@@ -79,14 +80,14 @@ const ActionPanel: FC<ActionPanelProps> = ({
   return (
     <div className="ActionsPanel">
       <div className="left-item">
-        <button
+        {/* <button
           className="IconButton"
           onClick={() => onPanelAction("shared")}
           disabled={disabled["shared"]}
           title="Поделиться ссылкой"
         >
           <LinkIcon {...iconSize} />
-        </button>
+        </button> */}
         {peersCount > 1 ? (
           <HVPopover
             content={
@@ -151,6 +152,9 @@ const ActionPanel: FC<ActionPanelProps> = ({
         </button>
       </div>
       <div className="right-item">
+        <button className="IconButton size-auto">
+          <Timer />
+        </button>
         <button
           className="IconButton color-red"
           onClick={() => onPanelAction("exit")}

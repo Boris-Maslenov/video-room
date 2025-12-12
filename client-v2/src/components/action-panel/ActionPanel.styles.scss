@@ -36,6 +36,12 @@
     background-color: #414040;
     cursor: auto;
   }
+
+  &.size-auto {
+    min-width: 48px;
+    width: auto;
+    padding: 0 5px;
+  }
 }
 
 .CamOnAndReverse {
