@@ -133,7 +133,6 @@ class SocketStore {
   }
 
   cleanupNetworkSession() {
-    console.log("cleanupNetworkSession");
     this.initial = false;
     this.socket.off("peer:closed", this.handlePeerClosed);
     this.socket.off("peer:ready", this.handlePeerReady);

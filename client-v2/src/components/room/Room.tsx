@@ -14,7 +14,6 @@ import { isMobileDevice } from "../../utils/isMobileDevice";
 import { MAX_PEERS_IN_SLIDE } from "../../config";
 
 const Room = () => {
-  console.log("Render Room");
   const devicesStore = useDevicesStore();
   const mediaSoupStore = useMediaSoupStore();
   const viewPeerStore = useViewPeerStore();
@@ -28,6 +27,7 @@ const Room = () => {
   const peersCount = viewPeerStore.peersCount;
   const viewShema = viewPeerStore.getViewShema;
   const activeGroup = viewPeerStore.activePeerGroup;
+
   const disabledActions: Partial<Record<ActionTypes, boolean>> = useMemo(() => {
     return {
       screen: isRemoteScreenMode,
@@ -48,7 +48,6 @@ const Room = () => {
       }
       case "camReverce": {
         if (isMobileDevice()) {
-          console.log("camReverce");
           devicesStore.camReverce();
         }
         break;
@@ -62,7 +61,7 @@ const Room = () => {
         break;
       }
       default: {
-        console.log("unnown action");
+        console.warn("unnown action");
       }
     }
   };

@@ -643,8 +643,6 @@ class MediasoupClientStore {
         this.createSelfPeer(peer.id, peer.roomId, peer.name, peer.isJoined);
       });
 
-      console.log("this.joinRoom", peer);
-
       // Пустой массив
       this.remotePeers = [];
       await this.createSendTransport();
@@ -771,8 +769,6 @@ class MediasoupClientStore {
 
     this.remotePeers = [...this.remotePeers, clientRemotePeer];
     await this.recv([clientRemotePeer.id]);
-
-    console.log(this.remotePeers);
   }
 
   camOff() {
@@ -829,7 +825,6 @@ class MediasoupClientStore {
    * Удаленный абонент выключил продюсер, делаем отписку соответствующего консюмера
    */
   deleteConsumerFromRemotePeer(peerId: string, produserId: string) {
-    console.log("deleteConsumerFromRemotePeer", peerId, produserId);
     this.remotePeers = this.remotePeers.map((p) => {
       if (p.id === peerId) {
         const foundConsumer = p.consumers.find(

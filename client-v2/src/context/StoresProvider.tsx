@@ -23,6 +23,7 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     root.network.init();
+
     const onPeerClosed = (a: string) =>
       root.mediaSoupClient.deleteRemotePeer(a);
     const onPeerReady = (a: RemotePeer) => {
@@ -42,11 +43,9 @@ export const StoresProvider = ({ children }: { children: ReactNode }) => {
       root.viewPeer.peersCount = count;
     };
     const onActiveSpeaker = (peerIds: string[]) => {
-      console.log("onActiveSpeaker", peerIds);
       root.mediaSoupClient.setActiveSpeakers(peerIds);
     };
     const onUpdateNetworkQuality = (peerId: string, quality: QualityData) => {
-      console.log("onUpdateNetworkQuality", peerId, quality);
       root.mediaSoupClient.updateRemoteNetworkQuality(peerId, quality);
     };
 
