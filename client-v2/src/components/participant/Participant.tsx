@@ -31,6 +31,7 @@ const Participant: FC<{ peer: ClientRemotePeer }> = observer(({ peer }) => {
   const [isVideoLoading, setIsVideoLoading] = useState(false);
 
   const isVideoEnabled =
+    peer.camOn &&
     videoTrack &&
     videoConsumer &&
     !videoConsumerIsPaused &&
