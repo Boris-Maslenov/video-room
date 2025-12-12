@@ -174,3 +174,61 @@ export const calcNetworkQuality = (score: number): NetworkQuality => {
   if (score >= 3) return "bad";
   return "very-bad";
 };
+
+export const getAudioConstraints = (needAudio: boolean, deviceId?: string) =>
+  deviceId ? { deviceId: { exact: deviceId } } : needAudio;
+export const getVideoConstraints = (
+  needVideo: boolean,
+  deviceId?: string,
+  facingMode?: "user" | "environment"
+) => {
+  return needVideo
+    ? {
+        ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+        width: { max: 360 },
+        facingMode: facingMode ?? "user",
+        frameRate: 25,
+      }
+    : false;
+};
+
+export const hasMedia = (
+  devices: MediaDeviceInfo[]
+): { hasAudio: boolean; hasVideo: boolean } => {
+  return {
+    hasAudio: devices.some((d) => d.kind === "audioinput"),
+    hasVideo: devices.some((d) => d.kind === "videoinput"),
+  };
+};
+
+export const clearMediaTrack = (
+  stream: MediaStream | null,
+  track: MediaStreamTrack | null
+) => {
+  if (!stream || !track) {
+    return;
+  }
+
+  track.stop();
+  stream.removeTrack(track);
+};
+
+export const getDeviceIdFromTrack = (
+  track?: MediaStreamTrack | null
+): string | null => {
+  return track?.getSettings().deviceId ?? null;
+};
+
+export const getAudioTrackFromStream = (stream: MediaStream | null) => {
+  if (!stream) {
+    return null;
+  }
+  return stream.getAudioTracks()[0];
+};
+
+export const getVideoTrackFromStream = (stream: MediaStream | null) => {
+  if (!stream) {
+    return null;
+  }
+  return stream.getVideoTracks()[0] ?? null;
+};

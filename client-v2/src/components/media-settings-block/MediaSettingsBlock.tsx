@@ -3,7 +3,6 @@ import { FC } from "react";
 import { observer } from "mobx-react-lite";
 import { useDevicesStore } from "../../context/StoresProvider";
 import VRSelect from "../select/VRSelect";
-import VRSwitch from "../shared/switch/Switch";
 import Loader from "../shared/loader/Loader";
 import { CamSwitch, MicSwitch } from "../action-panel/ActionPanel";
 
@@ -43,7 +42,7 @@ const MediaSettingsBlock: FC = () => {
             placeholder="..."
             options={getOptions(camDevices)}
             onValueChange={(value) =>
-              devicesStore.setDevice(value, "videoinput")
+              devicesStore.changeDevice(value, "videoinput")
             }
           />
         </div>
@@ -58,12 +57,11 @@ const MediaSettingsBlock: FC = () => {
             placeholder="..."
             options={getOptions(micsDevices)}
             onValueChange={(value) =>
-              devicesStore.setDevice(value, "audioinput")
+              devicesStore.changeDevice(value, "audioinput")
             }
           />
         </div>
       </div>
-
       <div className="MediaSettingsRow">
         <div className="Col Col-50">Включить устройство</div>
         <div className="Col Col-50">
@@ -89,35 +87,6 @@ const MediaSettingsBlock: FC = () => {
           </div>
         </div>
       </div>
-
-      {/* <div className="MediaSettingsRow">
-        <div className="Col Col-80">
-          <span className="TextEllipsis">Включить камеру</span>
-        </div>
-        <div className="Col Col-20 flex-center-right">
-          <VRSwitch
-            disabled={!allowCam}
-            checked={camOn && allowCam}
-            onCheckedChange={(checked) => {
-              devicesStore.toggleCam(checked);
-            }}
-          />
-        </div>
-      </div>
-      <div className="MediaSettingsRow">
-        <div className="Col Col-80">
-          <span className="TextEllipsis">Включить микрофон</span>
-        </div>
-        <div className="Col Col-20 flex-center-right">
-          <VRSwitch
-            disabled={!allowMic}
-            checked={micOn && allowMic}
-            onCheckedChange={(checked) => {
-              devicesStore.toggleMic(checked);
-            }}
-          />
-        </div>
-      </div> */}
     </div>
   );
 };

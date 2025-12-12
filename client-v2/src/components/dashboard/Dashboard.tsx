@@ -58,7 +58,7 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
         <Button
           size="large"
           onClick={() => {
-            devicesStore.init();
+            devicesStore.initV2();
             setModalOpen("EnterRoomModal");
           }}
           disabled={!roomId || status !== "online"}
@@ -77,7 +77,10 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
       {modal === "EnterRoomModal" && (
         <EnterRoomModal
           open={true}
-          onOpen={() => setModalOpen(null)}
+          onOpen={() => {
+            devicesStore.cleanupDevicesSession();
+            setModalOpen(null);
+          }}
           onSucces={enterRoomHandle}
           disabledSuccesButton={disabledModalBtn}
           mediaDevices={devicesStore.allMediaDevices}

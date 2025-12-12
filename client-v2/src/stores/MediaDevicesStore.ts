@@ -1,6 +1,16 @@
 import { makeAutoObservable, runInAction, observable } from "mobx";
 import { RootStore } from "./RootStore";
-import { getPermissions, stopStream } from "../utils/mediaUtils";
+import {
+  getPermissions,
+  stopStream,
+  hasMedia,
+  getAudioConstraints,
+  getVideoConstraints,
+  getDeviceIdFromTrack,
+  clearMediaTrack,
+  getAudioTrackFromStream,
+  getVideoTrackFromStream,
+} from "../utils/mediaUtils";
 
 const MOBILE_CAM_DEFAULT = "user";
 
@@ -13,6 +23,8 @@ class MediaDevicesStore {
   screenStream: MediaStream | null = null;
 
   facingMode: "user" | "environment" = MOBILE_CAM_DEFAULT;
+  isMultipleCameras: boolean = false;
+  camerasPointer: number = 0;
 
   audioTrack: MediaStreamTrack | null = null;
   videoTrack: MediaStreamTrack | null = null;
@@ -26,7 +38,7 @@ class MediaDevicesStore {
   mics: MediaDeviceInfo[];
 
   micOn: boolean = true;
-  camOn: boolean = true;
+  camOn: boolean = false;
 
   selectedMic: string | null = null;
   selectedCam: string | null = null;
@@ -47,6 +59,98 @@ class MediaDevicesStore {
       screenStream: observable.ref,
       // ref / shallow / deep / struct
     });
+  }
+
+  /**
+   * initV2
+   * Запрашивает разрещение на камеру и микрофон, определяет список медиа устройств и
+   * сразу позволяет работать с медиа устройствами,
+   * проверять если ли поток и тд. при входе в комнату будет уже готовый поток.
+   */
+  async initV2() {
+    this.cleanupDevicesSession();
+
+    runInAction(() => {
+      this.isMediaDevicesLoading = true;
+    });
+
+    try {
+      let tmpMediaDevices = await navigator.mediaDevices.enumerateDevices();
+      const { hasAudio, hasVideo } = hasMedia(tmpMediaDevices);
+
+      /**
+       * Важный момент, если устройства вообще нет в системе, то getPermissions считает, что и разрещения нет.
+       */
+      const { cam: camEnable, mic: micEnable } = await getPermissions(
+        hasAudio,
+        hasVideo
+      );
+      const allMediaDevices =
+        (await navigator.mediaDevices?.enumerateDevices()) ?? [];
+
+      runInAction(() => {
+        this.allMediaDevices = allMediaDevices;
+        this.allowMic = micEnable;
+        this.allowCam = camEnable;
+        this.cams = this.allMediaDevices.filter((d) => d.kind === "videoinput");
+        this.mics = this.allMediaDevices.filter(
+          (d) => d.kind === "audioinput" && d.deviceId !== "communications"
+        );
+
+        if (this.camOn && !this.allowCam) {
+          this.camOn = false;
+        }
+
+        if (this.micOn && !this.allowMic) {
+          this.micOn = false;
+        }
+      });
+
+      let initStream: MediaStream | null = null;
+
+      initStream =
+        this.allowMic || this.allowCam
+          ? await navigator.mediaDevices.getUserMedia({
+              audio: getAudioConstraints(this.allowMic),
+              video: getVideoConstraints(this.allowCam),
+            })
+          : null;
+
+      const audioTrack = getAudioTrackFromStream(initStream);
+      const videoTrack = getVideoTrackFromStream(initStream);
+
+      runInAction(() => {
+        this.selectedCam = getDeviceIdFromTrack(videoTrack);
+
+        if (audioTrack) {
+          this.selectedMic = getDeviceIdFromTrack(audioTrack);
+          this.audioTrack = audioTrack;
+        }
+
+        /**
+         * Видео поток всегда будет запущен, если выдано разрещение и существует камера,
+         * но если в настройках он выключен, то необходимо  поток остановить
+         */
+        if (videoTrack && this.camOn) {
+          this.videoTrack = videoTrack;
+        } else {
+          clearMediaTrack(initStream, videoTrack);
+        }
+
+        this.stream = initStream;
+      });
+
+      this.audioTrack && this.attachTrack(this.audioTrack);
+      this.videoTrack && this.attachTrack(this.videoTrack);
+    } catch (err) {
+      if (err instanceof Error) {
+        this.root.error.setError(err);
+      }
+    } finally {
+      runInAction(() => {
+        this.isMediaDevicesLoading = false;
+      });
+    }
   }
 
   /**
@@ -215,6 +319,11 @@ class MediaDevicesStore {
   }
 
   toggleMic(on: boolean) {
+    if (on && !this.selectedMic) {
+      this.root.error.setError("Устройство не включено");
+      return;
+    }
+
     // мягкий mute
     runInAction(() => {
       if (this.audioTrack) {
@@ -226,6 +335,11 @@ class MediaDevicesStore {
   }
 
   toggleCam(on: boolean) {
+    if (on && !this.selectedCam) {
+      this.root.error.setError("Устройство не включено");
+      return;
+    }
+
     // мягкий mute
     runInAction(() => {
       if (this.videoTrack) {
@@ -234,59 +348,63 @@ class MediaDevicesStore {
       this.camOn = on;
     });
 
-    if (this.root.mediaSoupClient.isJoined) {
-      on ? this.startCam() : this.stopCam();
-    }
+    on ? this.startCam() : this.stopCam();
   }
 
   async startCam() {
     let tmpStream: MediaStream | null = null;
+
     try {
-      const oldTrack = this.videoTrack;
-      if (oldTrack || !this.selectedCam) return;
+      if (this.videoTrack || !this.selectedCam) {
+        return;
+      }
 
       tmpStream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { deviceId: { exact: this.selectedCam } },
+        video: getVideoConstraints(true, this.selectedCam, this.facingMode),
       });
 
-      const track = tmpStream.getVideoTracks()[0];
+      const newTrack = getVideoTrackFromStream(tmpStream);
+
+      if (!tmpStream || !newTrack) {
+        throw new Error();
+      }
 
       if (!this.stream) {
         this.stream = new MediaStream();
       }
 
-      this.stream.addTrack(track);
-      runInAction(() => {
-        this.videoTrack = track;
-      });
-      this.attachTrack(track);
-      tmpStream.removeTrack(track);
+      this.stream.addTrack(newTrack);
+      tmpStream.removeTrack(newTrack);
 
-      this.root.mediaSoupClient.camOn();
+      runInAction(() => {
+        this.videoTrack = newTrack;
+      });
+
+      if (this.root.mediaSoupClient.isJoined) {
+        this.root.mediaSoupClient.camOn();
+      }
+
+      this.attachTrack(newTrack);
     } catch (err) {
       this.root.error.setError("Устройство не включено");
       runInAction(() => {
         this.camOn = false;
+        this.videoTrack?.stop();
+        this.videoTrack = null;
       });
-    } finally {
-      if (tmpStream) {
-        tmpStream.getTracks().forEach((t) => t.stop());
-      }
     }
   }
 
   async stopCam() {
-    try {
-      const track = this.videoTrack;
-      if (!track) return;
+    if (!this.videoTrack || !this.stream) {
+      return;
+    }
+    clearMediaTrack(this.stream, this.videoTrack);
+    this.videoTrack = null;
 
-      track.stop();
-      this.videoTrack = null;
-      this.stream?.removeTrack(track);
+    if (this.root.mediaSoupClient.isJoined) {
       this.root.mediaSoupClient.camOff();
-    } catch (err) {
-      console.log(err);
     }
   }
 
@@ -320,16 +438,25 @@ class MediaDevicesStore {
     }
   }
 
-  // Выбор id устройства
-  async setDevice(deviceId: string, type: "audioinput" | "videoinput") {
-    const allActualDevices = await navigator.mediaDevices.enumerateDevices();
-    const devices = allActualDevices.filter((d) => d.kind === type);
-    const findSelectedDev = devices.find((d) => d.deviceId === deviceId);
+  /**
+   * Установка нового медиа устрайства
+   */
+  async changeDevice(deviceId: string, type: "audioinput" | "videoinput") {
+    const findSelectedDev = this.allMediaDevices.find(
+      (d) => d.deviceId === deviceId
+    );
 
     if (!findSelectedDev) {
-      throw new Error(`Что-то пошло не так при выборе устройства`);
+      const error = new Error(
+        `Ошибка выбора ${
+          type === "audioinput" ? "микрофона" : "камеры"
+        }: устройство не найдено`
+      );
+      this.root.error.setError(error);
+      throw error;
     }
 
+    // Сразу показываем, что устройство выбрано
     runInAction(() => {
       if (type === "audioinput") {
         this.selectedMic = findSelectedDev.deviceId;
@@ -338,67 +465,156 @@ class MediaDevicesStore {
         this.selectedCam = findSelectedDev.deviceId;
       }
     });
-  }
 
-  /**
-   * TODO: будет актуальным когда будет смена устройства во время звонка
-   */
-  async changeMediaTrack(deviceId: string) {
-    if (!this.stream) {
-      return;
+    // текущий аудио трек уже есть, делаем подмену на новый
+    if (type === "audioinput" && this.stream && this.audioTrack) {
+      // Перед созданием нового трека останавливаем старый
+      clearMediaTrack(this.stream, this.audioTrack);
+
+      let tmpStream: MediaStream | null = null;
+
+      try {
+        tmpStream = await navigator.mediaDevices.getUserMedia({
+          audio: getAudioConstraints(true, findSelectedDev.deviceId),
+          video: false,
+        });
+      } catch (err) {
+        if (err instanceof Error) {
+          this.root.error.setError(
+            `Ошибка выбора микрофона ${findSelectedDev.label}. ${err.message}`
+          );
+        }
+        // Откат на старое устройство
+        if (this.selectedMic) {
+          this.changeDevice(this.selectedMic, "audioinput");
+        }
+      }
+
+      const newTrack = getAudioTrackFromStream(tmpStream);
+
+      if (!newTrack) {
+        return;
+      }
+
+      this.stream.addTrack(newTrack);
+
+      runInAction(() => {
+        this.audioTrack = newTrack;
+        this.attachTrack(this.audioTrack);
+      });
+
+      if (this.root.mediaSoupClient.isJoined) {
+        await this.root.mediaSoupClient.videoProducer?.replaceTrack({
+          track: this.audioTrack,
+        });
+      }
     }
+    // текущий видео трек уже есть, делаем подмену на новый
+    if (type === "videoinput" && this.stream && this.videoTrack) {
+      clearMediaTrack(this.stream, this.videoTrack);
 
-    const device = this.allMediaDevices.find((d) => d.deviceId === deviceId);
-    const audio = device?.kind === "audioinput";
-    const video = device?.kind === "videoinput";
+      let tmpStream: MediaStream | null = null;
 
-    const newStream = await navigator.mediaDevices.getUserMedia({
-      audio,
-      video,
-    });
+      try {
+        tmpStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: getVideoConstraints(
+            true,
+            findSelectedDev.deviceId,
+            this.facingMode
+          ),
+        });
+      } catch (err) {
+        if (err instanceof Error) {
+          this.root.error.setError(
+            `Ошибка выбора камеры ${findSelectedDev.label}. ${err.message}`
+          );
+        }
+        // Откат на старое устройство
+        if (this.selectedCam) {
+          this.changeDevice(this.selectedCam, "videoinput");
+        }
+      }
 
-    const oldTrack = audio
-      ? this.stream?.getAudioTracks()[0]
-      : this.stream.getVideoTracks()[0];
+      const newTrack = getVideoTrackFromStream(tmpStream);
 
-    const newTrack = audio
-      ? newStream.getAudioTracks()[0]
-      : newStream.getVideoTracks()[0];
+      if (!newTrack) {
+        const error = new Error(
+          `Не смог взять трек с устройства ${findSelectedDev.label}`
+        );
+        this.root.error.setError(error);
+        throw error;
+      }
 
-    this.stream?.removeTrack(oldTrack);
-    this.stream?.addTrack(newTrack);
+      this.stream.addTrack(newTrack);
+
+      runInAction(() => {
+        this.videoTrack = newTrack;
+        this.attachTrack(this.videoTrack);
+      });
+
+      if (this.root.mediaSoupClient.isJoined) {
+        this.root.mediaSoupClient.updateSelfPeer({
+          mediaStream: new MediaStream([this.videoTrack]),
+        });
+        await this.root.mediaSoupClient.videoProducer?.replaceTrack({
+          track: this.videoTrack,
+        });
+      }
+    }
   }
 
   /**
    * Подписка на события трека
    */
+  //todo: при событии ended желательно делать проверку на существование устройства и выданные права
+  // и например если устройство было отключено, и есть права, то попытаться подключить другое устройство если есть альтернатива
   attachTrack(track: MediaStreamTrack, isScreenTrack: boolean = false) {
     const type = track.kind as "video" | "audio";
     const onEnded = () => {
       runInAction(() => {
-        if (type === "audio" && !isScreenTrack) {
+        if (type === "audio") {
           this.audioTrack = null;
           this.micOn = false;
-          this.mics = [];
-          this.allowMic = false;
+          this.selectedMic = null;
           // трек никогда не возобновится, выключаем микрофон
           this.root.mediaSoupClient.toggleMic(false);
+          track.getSettings().deviceId;
+          this.root.error.setError(
+            new Error(
+              `Аудио поток c устройства ${
+                this.allMediaDevices.find(
+                  (d) => d.deviceId === track.getSettings().deviceId
+                )?.label ?? ""
+              } внезапно остановился, возможно нужно разрешить использование микрофона в браузере`
+            )
+          );
         }
 
-        if (type === "video" && !isScreenTrack) {
-          this.videoTrack = null;
+        if (type === "video") {
+          // screenshare end
+          if (isScreenTrack) {
+            this.screenStream = null;
+            // трек никогда не возобновится, выключаем скриншару
+            this.root.mediaSoupClient.stopLocalScreenShare();
+            return;
+          }
 
+          this.videoTrack = null;
           this.camOn = false;
-          this.cams = [];
-          this.allowCam = false;
+          this.selectedCam = null;
           // трек никогда не возобновится, выключаем камеру
           this.root.mediaSoupClient.camOff();
-        }
 
-        if (type === "video" && isScreenTrack) {
-          this.screenStream = null;
-          // трек никогда не возобновится, выключаем скриншару
-          this.root.mediaSoupClient.stopLocalScreenShare();
+          this.root.error.setError(
+            new Error(
+              `Видео поток c устройства ${
+                this.allMediaDevices.find(
+                  (d) => d.deviceId === track.getSettings().deviceId
+                )?.label ?? ""
+              } внезапно остановился, возможно нужно разрешить использование камеры в браузере`
+            )
+          );
         }
 
         if (this.cleanupTrackListeners.has(track)) {
@@ -406,12 +622,6 @@ class MediaDevicesStore {
           this.cleanupTrackListeners.delete(track);
         }
       });
-
-      this.root.error.setError(
-        new Error(
-          `Медиа поток внезапно остановился, возможно нужно разрешить использование камеры или микрофона в браузере`
-        )
-      );
     };
 
     track.addEventListener("ended", onEnded);
@@ -424,48 +634,44 @@ class MediaDevicesStore {
   /**
    * Смена камеры на мобильных устройства
    */
+
   async camReverce() {
-    const curFacingMode = this.facingMode;
-    let tempStreem: MediaStream | null = null;
+    const allVideoDevices = this.allMediaDevices.filter(
+      (d) => d.kind === "videoinput"
+    );
 
-    try {
-      tempStreem = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: curFacingMode === "user" ? "environment" : "user",
-        },
-        audio: false,
-      });
-    } catch (err) {
-      console.warn("front camera failed, fallback to old camera:");
-    }
-
-    if (!tempStreem) {
+    if (allVideoDevices.length <= 1) {
+      // нет камер для переключения
       return;
     }
 
-    const newVideoTrack = tempStreem.getVideoTracks()[0];
-    const oldVideoTrack = this.stream?.getVideoTracks()[0];
+    const currentVidDev = allVideoDevices.find(
+      (d) => d.deviceId === this.selectedCam
+    );
 
-    if (oldVideoTrack) {
-      this.stream?.addTrack(newVideoTrack);
-      this.stream?.removeTrack(oldVideoTrack);
-      oldVideoTrack.stop();
+    if (!currentVidDev) {
+      // error
+      return;
     }
 
-    await this.root.mediaSoupClient.videoProducer?.replaceTrack({
-      track: newVideoTrack,
-    });
+    const currentIdx = allVideoDevices.findIndex(
+      (d) => d.deviceId === currentVidDev.deviceId
+    );
+    const nextIdx =
+      currentIdx < allVideoDevices.length - 1 ? currentIdx + 1 : 0;
+    const nexVidDev = allVideoDevices[nextIdx];
 
-    tempStreem.removeTrack(newVideoTrack);
-    tempStreem = null;
+    if (!nexVidDev) {
+      // error
+      return;
+    }
 
-    runInAction(() => {
-      this.facingMode = curFacingMode === "user" ? "environment" : "user";
-
-      this.root.mediaSoupClient.updateSelfPeer({
-        mediaStream: new MediaStream([newVideoTrack]),
-      });
-    });
+    try {
+      await this.changeDevice(nexVidDev.deviceId, "videoinput");
+    } catch (err) {
+      console.warn("Camera failed, fallback to old camera:");
+      await this.changeDevice(currentVidDev.deviceId, "videoinput");
+    }
   }
 
   getMediaTracks() {
@@ -489,6 +695,8 @@ class MediaDevicesStore {
     this.selectedMic = null;
     this.allowMic = false;
     this.allowCam = false;
+    this.camOn = false;
+    this.micOn = true;
   }
 }
 

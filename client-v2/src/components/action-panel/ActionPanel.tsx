@@ -22,7 +22,7 @@ const iconSize = {
 };
 
 export const MicSwitch: FC<{ on: boolean }> = ({ on }) => {
-  return on ? <MicLevel /> : <MicOffIcon {...iconSize} />;
+  return on ? <MicLevel /> : <MicOffIcon />;
 };
 
 export const CamSwitch: FC<{ on: boolean }> = ({ on }) => {

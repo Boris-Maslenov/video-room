@@ -602,8 +602,7 @@ class MediasoupClientStore {
    */
   async createRoom(peerName: string) {
     try {
-      await this.root.mediaDevices.init();
-      await this.root.mediaDevices.startMediaTracks();
+      await this.root.mediaDevices.initV2();
       // 1 создаем пуствую комнату
       const { data: dataRoom } = await this.root.network.apiSend<{
         id: string;
@@ -671,7 +670,7 @@ class MediasoupClientStore {
   async enterRoom(roomId: string, peerName: string) {
     console.log("enterRoom", roomId, peerName);
     try {
-      await this.root.mediaDevices.startMediaTracks();
+      // await this.root.mediaDevices.startMediaTracks();
       // 1 Запрос Rtp Capabilities
       const routerRtpCapabilities = await this.gerRouterRtpCapabilities(roomId);
       console.log("enterRoom 1", routerRtpCapabilities);

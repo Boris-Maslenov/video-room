@@ -76,12 +76,18 @@ export const MicLevel: FC = observer(() => {
       try {
         cancelAnimationFrame(rafId);
         source?.disconnect();
-        ctxRef.current?.close();
-        // @ts-ignore
-        ctxRef.current = undefined;
       } catch (err) {}
     };
   }, [track]);
+
+  useEffect(
+    () => () => {
+      ctxRef.current?.close();
+      // @ts-ignore
+      ctxRef.current = undefined;
+    },
+    []
+  );
 
   return (
     <svg
