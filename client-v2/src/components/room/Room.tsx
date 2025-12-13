@@ -75,7 +75,7 @@ const Room = () => {
     viewPeerStore.activePeerGroup = group;
   }, []);
 
-  const getMaxVisiblePeers = (width: number, height: number): number => {
+  const getMaxVisiblePeers = (width: number, _: number): number => {
     switch (true) {
       case width <= 538: {
         return 3;
