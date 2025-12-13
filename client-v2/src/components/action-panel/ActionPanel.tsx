@@ -6,8 +6,7 @@ import {
   CamOffIcon,
   ScreenShareOnIcon,
   ScreenShareOffIcon,
-  LinkIcon,
-  CloseIcon,
+  PhoneOff,
   ReverseCamIcon,
 } from "../icons";
 import PeersCount from "../peers-count/PeersCount";
@@ -16,6 +15,7 @@ import HVPopover from "../shared/popover/Popover";
 import Timer from "../timer/Timer";
 
 import { useLongPress } from "../../hooks/useLongPress";
+import { RemotePeer } from "../../stores/MediasoupClientStore";
 
 const iconSize = {
   width: "19px",
@@ -44,7 +44,7 @@ type ActionPanelProps = {
   camState: boolean;
   screenState: boolean;
   peersCount: number;
-  peersNames: string[];
+  peers: RemotePeer[];
   disabled: Partial<Record<ActionTypes, boolean>>;
 };
 
@@ -62,7 +62,7 @@ const ActionPanel: FC<ActionPanelProps> = ({
   camState,
   peersCount,
   screenState,
-  peersNames,
+  peers,
   disabled = {},
 }) => {
   const [reversCamView, setReversCamView] = useState(false);
@@ -88,25 +88,20 @@ const ActionPanel: FC<ActionPanelProps> = ({
         >
           <LinkIcon {...iconSize} />
         </button> */}
-        {peersCount > 1 ? (
-          <HVPopover
-            content={
-              <ul>
-                {peersNames.map((name, i) => (
-                  <li key={i + name}>{name}</li>
-                ))}
-              </ul>
-            }
-          >
-            <button className="IconButton" title="Кол-во участников">
-              <PeersCount count={peersCount} />
-            </button>
-          </HVPopover>
-        ) : (
+
+        <HVPopover
+          content={
+            <ul>
+              {peers.map((p, i) => (
+                <li key={i + p.name}>{p.name}</li>
+              ))}
+            </ul>
+          }
+        >
           <button className="IconButton" title="Кол-во участников">
             <PeersCount count={peersCount} />
           </button>
-        )}
+        </HVPopover>
       </div>
       <div className="center-item">
         <button
@@ -160,7 +155,7 @@ const ActionPanel: FC<ActionPanelProps> = ({
           onClick={() => onPanelAction("exit")}
           title="Выйти из комнаты"
         >
-          <CloseIcon {...iconSize} />
+          <PhoneOff {...iconSize} />
         </button>
       </div>
     </div>

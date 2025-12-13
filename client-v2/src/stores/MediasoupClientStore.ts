@@ -105,6 +105,12 @@ class MediasoupClientStore {
     );
   }
 
+  get allPeers() {
+    return this.selfPeer
+      ? [this.selfPeer, ...this.remotePeers]
+      : this.remotePeers;
+  }
+
   get getActiveSpeakers() {
     return Array.from(this._activeSpeakers);
   }

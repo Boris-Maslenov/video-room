@@ -8,6 +8,7 @@ type Input = {
 type Output = {
   values: Input["initialValues"];
   errors: Record<string, string>;
+  validate: (a: string, b: any) => boolean;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 
@@ -18,13 +19,10 @@ const useInputsState: (props: Input) => Output = ({
   const [inputsState, setInputsState] = useState(initialValues);
   const [errors, setErrors] = useState<Output["errors"]>({});
 
-  const setValue = (e: ChangeEvent<HTMLInputElement>) => {
-    const validationCallback = validationShema[e.target.name][1] ?? null;
-    const name = e.target.name;
-    const value = e.target.value;
-
+  const validate = (name: string, value: any) => {
+    const validationCallback = validationShema[name][1] ?? null;
     if (validationCallback) {
-      const isValid = validationCallback(e.target.value);
+      const isValid = validationCallback(value);
 
       if (isValid && errors[name]) {
         setErrors((prev) => {
@@ -39,12 +37,22 @@ const useInputsState: (props: Input) => Output = ({
           [name]: validationShema[name][0],
         }));
       }
+
+      return isValid;
     }
 
+    return true;
+  };
+
+  const setValue = (e: ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.name;
+    const value = e.target.value;
+
+    validate(name, value);
     setInputsState((state) => ({ ...state, [name]: value }));
   };
 
-  return { values: inputsState, onChange: setValue, errors };
+  return { values: inputsState, onChange: setValue, errors, validate };
 };
 
 export default useInputsState;

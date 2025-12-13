@@ -16,11 +16,8 @@ class PeerCarouselStore {
   }
 
   get getViewShema() {
-    const selfPeer = this.root.mediaSoupClient.selfPeer;
-    const remotePeers = this.root.mediaSoupClient.remotePeers;
-
     return getGroupShema(
-      selfPeer ? [selfPeer].concat(remotePeers) : remotePeers,
+      this.root.mediaSoupClient.allPeers,
       this.maxPeersInSlide
     );
   }

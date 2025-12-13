@@ -17,6 +17,7 @@ const Room = () => {
   const devicesStore = useDevicesStore();
   const mediaSoupStore = useMediaSoupStore();
   const viewPeerStore = useViewPeerStore();
+
   const mics = devicesStore.mics;
   const cams = devicesStore.cams;
   const allowMic = devicesStore.allowMic;
@@ -113,7 +114,7 @@ const Room = () => {
         screenState={Boolean(devicesStore.screenStream)}
         disabled={disabledActions}
         peersCount={peersCount}
-        peersNames={mediaSoupStore.remotePeers.map((p) => p.name)}
+        peers={mediaSoupStore.allPeers}
       />
     </div>
   );

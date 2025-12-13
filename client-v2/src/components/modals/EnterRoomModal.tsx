@@ -19,7 +19,7 @@ const EnterRoomModal: FC<PropsType> = ({
   onSucces,
   disabledSuccesButton = false,
 }) => {
-  const { values, onChange, errors } = useInputsState({
+  const { values, onChange, errors, validate } = useInputsState({
     initialValues: { peerName: "" },
     validationShema: {
       peerName: ["Имя должно содержать не менее 3 символов", validatePeerName],
@@ -43,6 +43,10 @@ const EnterRoomModal: FC<PropsType> = ({
       <DefaultDialogActions
         onOpen={onOpen}
         onSucces={() => {
+          if (!validate("peerName", values["peerName"])) {
+            return;
+          }
+
           onSucces(values.peerName);
         }}
         disabledSuccesButton={Boolean(errors.peerName) || disabledSuccesButton}

@@ -6,6 +6,7 @@ import {
   hasMedia,
   getAudioConstraints,
   getVideoConstraints,
+  getScreenShareConstraints,
   getDeviceIdFromTrack,
   clearMediaTrack,
   getAudioTrackFromStream,
@@ -153,76 +154,6 @@ class MediaDevicesStore {
     }
   }
 
-  /**
-   *startMediaTracks
-   * Запускает стрим с треками, по предустановленным настройкам
-   */
-  async startMediaTracks(): Promise<MediaStreamTrack[]> {
-    // на всякий случай закроем все треки
-    stopStream(this.stream);
-    this.videoTrack = null;
-    this.audioTrack = null;
-    this.stream = null;
-
-    let mediaTracks = [] as MediaStreamTrack[];
-    // устройство готово для транслирования медиа если: включено\выбрано\выдано разрешение
-    // для микрофона делаем исключение, создаем трек, даже если !this.micOn чтобы отправить пустой трек (TODO: на след. версии)
-    const needAudio = Boolean(this.selectedMic && this.allowMic);
-    const needVideo = Boolean(this.camOn && this.selectedCam && this.allowCam);
-
-    /**
-     * Стрим на основе выбранных устройств
-     */
-    const stream =
-      needAudio || needVideo
-        ? await navigator.mediaDevices.getUserMedia({
-            audio:
-              needAudio && this.selectedMic
-                ? {
-                    deviceId: { exact: this.selectedMic },
-                  }
-                : false,
-            video:
-              needVideo && this.selectedCam
-                ? {
-                    deviceId: { exact: this.selectedCam },
-                    width: { max: 360 },
-                    frameRate: 20,
-                  }
-                : false,
-          })
-        : null;
-
-    if (!stream) {
-      return mediaTracks;
-    }
-
-    runInAction(() => {
-      this.stream = stream;
-    });
-
-    if (needAudio) {
-      const track = stream.getAudioTracks()[0];
-      this.attachTrack(track);
-      // TODO: даже если микрофон выключен, все равно транслируем пустой поток, чтобы включение было мгновенным
-      if (!this.micOn) {
-        track.enabled = false;
-      }
-      this.audioTrack = track;
-
-      mediaTracks.push(track);
-    }
-
-    if (needVideo) {
-      const track = stream.getVideoTracks()[0];
-      this.attachTrack(track);
-      this.videoTrack = track;
-      mediaTracks.push(track);
-    }
-
-    return mediaTracks;
-  }
-
   toggleMic(on: boolean) {
     if (on && !this.selectedMic) {
       this.root.error.setError("Устройство не включено");
@@ -320,14 +251,9 @@ class MediaDevicesStore {
     }
 
     if (on) {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          frameRate: 15,
-          width: { max: 2560 },
-          height: { max: 1440 },
-        },
-        audio: false,
-      });
+      const screenStream = await navigator.mediaDevices.getDisplayMedia(
+        getScreenShareConstraints()
+      );
 
       const screenTrack = screenStream.getVideoTracks()[0];
 

@@ -63,10 +63,12 @@ export const getPermissions = async (
  */
 export const getGroupShema = (peers: ClientRemotePeer[], maxCount: number) => {
   let result: Record<number, ClientRemotePeer[]> = {};
-  const len = peers.length;
-  if (len === 0) return {};
-
   let groups = 0;
+  const len = peers.length;
+
+  if (len === 0) {
+    return {};
+  }
 
   for (let i = 0; i < len; i += maxCount) {
     result[groups] = peers.slice(i, i + maxCount);
@@ -177,6 +179,7 @@ export const calcNetworkQuality = (score: number): NetworkQuality => {
 
 export const getAudioConstraints = (needAudio: boolean, deviceId?: string) =>
   deviceId ? { deviceId: { exact: deviceId } } : needAudio;
+
 export const getVideoConstraints = (
   needVideo: boolean,
   deviceId?: string,
@@ -190,6 +193,17 @@ export const getVideoConstraints = (
         frameRate: 25,
       }
     : false;
+};
+
+export const getScreenShareConstraints = () => {
+  return {
+    video: {
+      frameRate: 15,
+      width: { max: 2560 },
+      height: { max: 1440 },
+    },
+    audio: false,
+  };
 };
 
 export const hasMedia = (
