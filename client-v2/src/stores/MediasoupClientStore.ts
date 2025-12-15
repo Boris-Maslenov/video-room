@@ -609,7 +609,8 @@ class MediasoupClientStore {
    */
   async createRoom(peerName: string) {
     try {
-      await this.root.mediaDevices.initV2();
+      await this.root.mediaDevices.init();
+
       // 1 создаем пуствую комнату
       const { data: dataRoom } = await this.root.network.apiSend<{
         id: string;
@@ -621,7 +622,9 @@ class MediasoupClientStore {
         dataRoom.id
       );
 
-      // Не гарантирует в будущем, что пир будет именно в этой комнате. Гарант того, что пир в комнате joinRoom
+      // 4 загружаем Device
+      const rtpCapabilities = await this.loadDevice(routerRtpCapabilities);
+
       const { data: dataPeer } = await this.root.network.apiSend<Peer>(
         "createPeer",
         {
@@ -631,9 +634,6 @@ class MediasoupClientStore {
           micOn: this.root.mediaDevices.micOn,
         }
       );
-
-      // 4 загружаем Device
-      const rtpCapabilities = await this.loadDevice(routerRtpCapabilities);
 
       // 5 Сервер добавит пира в комнату (isJoined = true), после чего можно подписываться и передавать Media
       const { peer } = await this.joinRoom(
@@ -659,8 +659,8 @@ class MediasoupClientStore {
         await Promise.all(mediaTracks.map((track) => this.send(track)));
       }
     } catch (err) {
-      this.cleanupMediaSession();
-      this.root.mediaDevices.cleanupDevicesSession();
+      await this.endCall();
+
       if (err instanceof Error) {
         this.root.error.setError(err);
       }
@@ -677,7 +677,10 @@ class MediasoupClientStore {
       // 1 Запрос Rtp Capabilities
       const routerRtpCapabilities = await this.gerRouterRtpCapabilities(roomId);
 
-      // 2 создаем пира
+      // 2 загружаем Device
+      const rtpCapabilities = await this.loadDevice(routerRtpCapabilities);
+
+      // 3 создаем пира
       const { data: dataPeer } = await this.root.network.apiSend<Peer>(
         "createPeer",
         {
@@ -691,9 +694,6 @@ class MediasoupClientStore {
       if (!dataPeer.id || !dataPeer.roomId || !dataPeer.name) {
         throw new Error("enterRoom failed!");
       }
-
-      // 3 загружаем Device
-      const rtpCapabilities = await this.loadDevice(routerRtpCapabilities);
 
       // 4 Сервер успешно добавил пира и вернул участников комнаты
       const { remotePeers, peer } = await this.joinRoom(
@@ -732,8 +732,8 @@ class MediasoupClientStore {
 
       await this.root.network.apiSend("peerConnected", this.defaultRoomData);
     } catch (err) {
-      this.cleanupMediaSession();
-      this.root.mediaDevices.cleanupDevicesSession();
+      await this.endCall();
+
       if (err instanceof Error) {
         this.root.error.setError("Ошибка подключения к комнате: " + err);
       }

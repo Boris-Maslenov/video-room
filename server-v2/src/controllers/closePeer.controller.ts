@@ -28,10 +28,11 @@ export const closePeer: (socket: Socket) => boolean = (socket) => {
       foundPeer.recvTransport
     );
 
+    deletePeer(room.id, foundPeer.id);
+
     const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);
 
     room.consumers = cleanupConsumers(room.consumers, foundPeer.id);
-    deletePeer(room.id, foundPeer.id);
 
     if (ids.length > 0) {
       socket.to(ids).emit("peer:closed", foundPeer.id);

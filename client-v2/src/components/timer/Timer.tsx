@@ -1,8 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 
-const secondConverter = (
-  num: number
-): Record<"hours" | "minutes" | "seconds", string> => {
+const secondConverter = (num: number): Record<"h" | "m" | "s", string> => {
   const getValue = (val: number): string => {
     return val < 10 ? `0${val}` : String(val);
   };
@@ -12,9 +10,9 @@ const secondConverter = (
   const seconds = num - hours * 3600 - minutes * 60;
 
   return {
-    hours: getValue(hours),
-    minutes: getValue(minutes),
-    seconds: getValue(seconds),
+    h: getValue(hours),
+    m: getValue(minutes),
+    s: getValue(seconds),
   };
 };
 
@@ -33,9 +31,7 @@ const Timer = () => {
     }
 
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      timerRef.current && clearInterval(timerRef.current);
     };
   }, []);
 
@@ -43,7 +39,7 @@ const Timer = () => {
 
   return (
     <>
-      {t.hours}:{t.minutes}:{t.seconds}
+      {t.h}:{t.m}:{t.s}
     </>
   );
 };

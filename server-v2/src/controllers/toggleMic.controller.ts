@@ -15,19 +15,6 @@ export const toggleMic: (...args: HandleParameters<"toggleMic">) => void =
         "consumerResumeController"
       );
 
-      // if (!micOn) {
-      //   const producerId = peer.audioProducer.id;
-      //   room.consumers = room.consumers
-      //     .map((c) => {
-      //       c.producerId === producerId && safeClose(c);
-      //       return c;
-      //     })
-      //     .filter((c) => c.producerId !== producerId);
-
-      //   safeClose(peer.audioProducer);
-      //   peer.audioProducer = null;
-      // }
-
       updatePeer(roomId, { ...peer, micOn });
 
       const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);

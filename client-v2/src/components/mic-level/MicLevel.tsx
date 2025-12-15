@@ -110,7 +110,7 @@ export const MicLevel: FC = observer(() => {
             style={{
               // @ts-ignore
               "--level": `${MIN_VALUE}px`,
-              transition: "transform 0.2s",
+              transition: "transform 0.3s",
               transform: "translateY(var(--level))",
             }}
           />
