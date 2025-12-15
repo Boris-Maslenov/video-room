@@ -26,6 +26,8 @@ const EnterRoomModal: FC<PropsType> = ({
     },
   });
 
+  console.log("values", values);
+
   return (
     <Modal title="Подключиться к комнате" onOpen={onOpen} open={true}>
       <MediaSettingsBlock />
@@ -37,6 +39,7 @@ const EnterRoomModal: FC<PropsType> = ({
             placeholder: "Борис Масленов",
             onChange: onChange,
             error: errors.peerName,
+            value: values["peerName"],
           }}
         />
       </div>

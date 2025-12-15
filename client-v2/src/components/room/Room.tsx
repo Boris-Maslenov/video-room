@@ -67,6 +67,18 @@ const Room = () => {
     }
   };
 
+  const onKeydown = (e: KeyboardEvent) => {
+    if (e.code === "Space") {
+      e.preventDefault();
+      devicesStore.toggleMic(!devicesStore.micOn);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("keydown", onKeydown);
+    return () => window.removeEventListener("keydown", onKeydown);
+  }, []);
+
   useEffect(() => {
     mediaSoupStore.manageViewConsumers(activeGroup);
   }, [activeGroup]);

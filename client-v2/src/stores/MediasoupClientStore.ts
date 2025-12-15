@@ -25,6 +25,7 @@ export type MediaDevice = {
 export type ProducerKey = "audioProducer" | "videoProducer" | "screenProducer";
 
 export type NetworkPeerStatus = "offline" | "connecting" | "online";
+export type SessionPeerStatus = "idle" | "connecting" | "ready";
 
 export type NetworkQuality = "good" | "medium" | "bad" | "very-bad";
 
@@ -93,6 +94,7 @@ class MediasoupClientStore {
   private _activeSpeakers: Set<string> = new Set();
   private _idTimeOut: number | null = null;
   private _networkQuality: QualityData | null = null;
+  private _sessionState: SessionPeerStatus = "idle";
 
   constructor(root: RootStore) {
     this.root = root;
@@ -103,6 +105,14 @@ class MediasoupClientStore {
       { remotePeers: observable.ref },
       { autoBind: true }
     );
+  }
+
+  get sessionState() {
+    return this._sessionState;
+  }
+
+  set sessionState(status: SessionPeerStatus) {
+    this._sessionState = status;
   }
 
   get allPeers() {
@@ -608,6 +618,12 @@ class MediasoupClientStore {
    * Создание новой комнаты
    */
   async createRoom(peerName: string) {
+    if (this.sessionState !== "idle") {
+      return;
+    }
+
+    this.sessionState = "connecting";
+
     try {
       await this.root.mediaDevices.init();
 
@@ -635,12 +651,17 @@ class MediasoupClientStore {
         }
       );
 
+      if (!dataPeer.id || !dataPeer.roomId) {
+        throw new Error("createRoom failed!");
+      }
+
       // 5 Сервер добавит пира в комнату (isJoined = true), после чего можно подписываться и передавать Media
       const { peer } = await this.joinRoom(
         dataRoom.id,
         dataPeer.id,
         rtpCapabilities
       );
+
       runInAction(() => {
         this.peerId = peer.id;
         this.roomId = peer.roomId;
@@ -658,8 +679,15 @@ class MediasoupClientStore {
       if (mediaTracks.length) {
         await Promise.all(mediaTracks.map((track) => this.send(track)));
       }
+
+      this.sessionState = "ready";
     } catch (err) {
-      await this.endCall();
+      if (this.roomId && this.peerId) {
+        await this.endCall();
+      } else {
+        this.root.mediaDevices.cleanupDevicesSession();
+        this.cleanupMediaSession();
+      }
 
       if (err instanceof Error) {
         this.root.error.setError(err);
@@ -673,6 +701,12 @@ class MediasoupClientStore {
    * Подключение к существующей комнате
    */
   async enterRoom(roomId: string, peerName: string) {
+    if (this.sessionState !== "idle") {
+      return;
+    }
+
+    this.sessionState = "connecting";
+
     try {
       // 1 Запрос Rtp Capabilities
       const routerRtpCapabilities = await this.gerRouterRtpCapabilities(roomId);
@@ -721,17 +755,28 @@ class MediasoupClientStore {
       // 6 Подписка на потоки
       await this.recv(this.remotePeers.map(({ id }) => id));
 
-      // 7 отправка потоков
+      // 7 создание send transport
       await this.createSendTransport();
 
       const mediaTracks = this.root.mediaDevices.getMediaTracks();
 
+      // 8 Отправка медиа потоков
       if (mediaTracks.length) {
         await Promise.all(mediaTracks.map((track) => this.send(track)));
       }
 
+      // 9 Уведомление других участников, о новом пире
       await this.root.network.apiSend("peerConnected", this.defaultRoomData);
+
+      this.sessionState = "ready";
     } catch (err) {
+      if (this.roomId && this.peerId) {
+        await this.endCall();
+      } else {
+        this.root.mediaDevices.cleanupDevicesSession();
+        this.cleanupMediaSession();
+      }
+
       await this.endCall();
 
       if (err instanceof Error) {
@@ -1008,6 +1053,8 @@ class MediasoupClientStore {
     this.videoProducer = null;
     this.recvTransport = null;
     this.sendTransport = null;
+
+    this.sessionState = "idle";
 
     this.clearRemoteScreen();
   }

@@ -6,16 +6,21 @@ import { observer } from "mobx-react-lite";
 import Room from "../room/Room";
 import { ROOM_QUERY_KEY } from "../../config";
 import Modal from "../shared/modal/Modal";
+import Loader from "../shared/loader/Loader";
 
 const RootLayout: FC = () => {
   const mediaStore = useMediaSoupStore();
   const errorStore = useErrorStore();
-  const { isJoined } = mediaStore;
+  const { sessionState } = mediaStore;
   const [roomId] = useParams(ROOM_QUERY_KEY);
+
+  if (sessionState === "connecting") {
+    return <Loader />;
+  }
 
   return (
     <>
-      {!isJoined ? <Dashboard roomId={roomId} /> : <Room />}
+      {sessionState === "idle" ? <Dashboard roomId={roomId} /> : <Room />}
 
       {errorStore.errorsStack.length > 0 && (
         <Modal

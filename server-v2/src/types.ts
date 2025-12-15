@@ -57,7 +57,6 @@ type RemotePeer = {
   producersData: { producerId: string; source: Source }[];
   socketId: string;
   isJoined: boolean;
-  status: "offline" | "connecting" | "online";
 };
 
 export type ClientEvents = {

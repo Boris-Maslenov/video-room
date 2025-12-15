@@ -48,7 +48,6 @@ export const joinRoom: (...args: HandleParameters<"joinRoom">) => void =
                   producerId: p.id,
                   source: p.appData.source as Source,
                 })),
-              status: "online",
             })),
         },
       });

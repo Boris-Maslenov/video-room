@@ -39,7 +39,6 @@ export const peerConnected: (
               producerId: p.id,
               source: p.appData.source as Source,
             })),
-          status: "online",
         });
     }
 

@@ -20,7 +20,7 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
     "CreateRoomModal" | "EnterRoomModal" | null
   >(null);
 
-  const status = socketStore.networkStatus;
+  const netStatus = socketStore.networkStatus;
 
   const [disabledModalBtn, setDisabledModalBtn] = useState(false);
 
@@ -51,7 +51,7 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
         <Button
           size="large"
           onClick={() => setModalOpen("CreateRoomModal")}
-          disabled={!!roomId || status !== "online"}
+          disabled={!!roomId || netStatus !== "online"}
         >
           Создать комнату
         </Button>
@@ -61,7 +61,7 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
             devicesStore.init();
             setModalOpen("EnterRoomModal");
           }}
-          disabled={!roomId || status !== "online"}
+          disabled={!roomId || netStatus !== "online"}
         >
           Подключиться
         </Button>

@@ -20,6 +20,7 @@ const useInputsState: (props: Input) => Output = ({
   const [errors, setErrors] = useState<Output["errors"]>({});
 
   const validate = (name: string, value: any) => {
+    console.log("validate", name, value);
     const validationCallback = validationShema[name][1] ?? null;
     if (validationCallback) {
       const isValid = validationCallback(value);
