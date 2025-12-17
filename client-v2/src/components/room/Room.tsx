@@ -111,11 +111,15 @@ const Room = () => {
         />
         {screenShareMode && (
           <ScreenSharePresentation
+            isCollapsed={mediaSoupStore.isScreenCollapsed}
             stream={
               isRemoteScreenMode
                 ? mediaSoupStore.remoteScreenStream
                 : devicesStore.screenStream
             }
+            onToogleCollapsed={(isCollapse) => {
+              mediaSoupStore.isScreenCollapsed = isCollapse;
+            }}
           />
         )}
       </div>

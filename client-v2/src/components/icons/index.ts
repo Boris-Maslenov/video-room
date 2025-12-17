@@ -17,3 +17,5 @@ export { ErrorIcon } from "./ErrorIcon";
 export { QualitySignalIcon } from "./QualitySignalIcon";
 export { ReverseCamIcon } from "./ReverseCamIcon";
 export { PhoneOff } from "./PhoneOff";
+export { CollapseIcon } from "./CollapseIcon";
+export { ExpandIcon } from "./ExpandIcon";

@@ -1,6 +1,6 @@
 import "./Participant.styles.scss";
 import { FC, useRef, useEffect, useState } from "react";
-import { ClientRemotePeer } from "../../stores/MediasoupClientStore";
+import { ClientPeer } from "../../stores/MediasoupClientStore";
 import ParticipantLabel from "../participant-label/ParticipantLabel";
 import MediaRenderer from "../mediaRenderer/MediaRenderer";
 import classNames from "classnames";
@@ -14,7 +14,7 @@ import { observer } from "mobx-react-lite";
 import { useMediaSoupStore } from "../../context/StoresProvider";
 import { QualitySignalIcon } from "../icons/index";
 
-const Participant: FC<{ peer: ClientRemotePeer }> = observer(({ peer }) => {
+const Participant: FC<{ peer: ClientPeer }> = observer(({ peer }) => {
   const mediaSoupStore = useMediaSoupStore();
   const mediaElRef = useRef<HTMLVideoElement>(null);
   const stream = peer.mediaStream;

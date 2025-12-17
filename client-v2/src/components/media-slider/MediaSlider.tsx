@@ -1,12 +1,12 @@
 import { FC, ReactNode } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Mousewheel, Pagination } from "swiper/modules";
-import { ClientRemotePeer } from "../../stores/MediasoupClientStore";
+import { ClientPeer } from "../../stores/MediasoupClientStore";
 import Participant from "../participant/Participant";
 
 type PropsType = {
   children?: ReactNode;
-  viewShema: Record<number, ClientRemotePeer[]>;
+  viewShema: Record<number, ClientPeer[]>;
   onChangeOrUpdateSlide: (num: number) => void;
   onResize: (width: number, height: number) => void;
 };

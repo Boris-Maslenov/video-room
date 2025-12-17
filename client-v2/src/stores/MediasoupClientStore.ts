@@ -40,6 +40,7 @@ export type RemoteProducerData = {
 
 export type AppProducer = Producer<{ source: Source }>;
 
+// TODO навести порядок в типах
 export type Peer = {
   id: string;
   roomId: string;
@@ -55,13 +56,13 @@ export type RemotePeer = Peer & {
   producersData: RemoteProducerData[];
 };
 
-export type ClientRemotePeer = RemotePeer & {
+export type ClientPeer = RemotePeer & {
   consumers: Consumer<{ peerId: string; source: Source }>[];
   mediaStream: MediaStream;
   isSelf?: boolean;
 };
 
-export type ViewShema = Record<number, ClientRemotePeer[]>;
+export type ViewShema = Record<number, ClientPeer[]>;
 
 const producersMap = {
   audio: "audioProducer",
@@ -84,13 +85,14 @@ class MediasoupClientStore {
   audioProducer: AppProducer | null = null;
   screenProducer: AppProducer | null = null;
 
-  remotePeers: ClientRemotePeer[] = [];
+  remotePeers: ClientPeer[] = [];
 
   remoteScreenConsumer: Consumer | null = null;
   remoteScreenStream: MediaStream | null = null;
   isRemoteScreenActive: boolean = false;
+  private _isScreenCollapsed: boolean = false;
 
-  private _selfPeer: ClientRemotePeer | null = null;
+  private _selfPeer: ClientPeer | null = null;
   private _activeSpeakers: Set<string> = new Set();
   private _idTimeOut: number | null = null;
   private _networkQuality: QualityData | null = null;
@@ -105,6 +107,14 @@ class MediasoupClientStore {
       { remotePeers: observable.ref },
       { autoBind: true }
     );
+  }
+
+  get isScreenCollapsed() {
+    return this._isScreenCollapsed;
+  }
+
+  set isScreenCollapsed(value: boolean) {
+    this._isScreenCollapsed = value;
   }
 
   get sessionState() {
@@ -155,7 +165,7 @@ class MediasoupClientStore {
     return this._selfPeer;
   }
 
-  set selfPeer(peer: ClientRemotePeer | null) {
+  set selfPeer(peer: ClientPeer | null) {
     this._selfPeer = peer;
   }
 
@@ -188,7 +198,7 @@ class MediasoupClientStore {
     };
   }
 
-  updateSelfPeer(data: Partial<ClientRemotePeer>) {
+  updateSelfPeer(data: Partial<ClientPeer>) {
     if (!this._selfPeer) {
       return;
     }
@@ -776,8 +786,6 @@ class MediasoupClientStore {
         this.root.mediaDevices.cleanupDevicesSession();
         this.cleanupMediaSession();
       }
-
-      await this.endCall();
 
       if (err instanceof Error) {
         this.root.error.setError("Ошибка подключения к комнате: " + err);
