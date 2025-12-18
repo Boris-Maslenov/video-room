@@ -1,13 +1,13 @@
 .PopoverContent {
-  color: #111;
+  color: var(--gray-300);
   overflow: hidden;
   display: flex;
   z-index: 100;
   border-radius: 4px;
   padding: 10px;
-  padding-top: 20px;
+  // padding-top: 20px;
   width: 260px;
-  background-color: white;
+  background-color: var(--slate-800);
   box-shadow: hsl(206 22% 7% / 35%) 0px 10px 38px -10px,
     hsl(206 22% 7% / 20%) 0px 10px 20px -15px;
   animation-duration: 400ms;

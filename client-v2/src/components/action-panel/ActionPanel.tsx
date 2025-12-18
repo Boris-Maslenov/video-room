@@ -16,6 +16,7 @@ import Timer from "../timer/Timer";
 
 import { useLongPress } from "../../hooks/useLongPress";
 import { RemotePeer } from "../../stores/MediasoupClientStore";
+import PeersList from "../peers-list/PeersList";
 
 const iconSize = {
   width: "19px",
@@ -89,15 +90,7 @@ const ActionPanel: FC<ActionPanelProps> = ({
           <LinkIcon {...iconSize} />
         </button> */}
 
-        <HVPopover
-          content={
-            <ul>
-              {peers.map((p, i) => (
-                <li key={i + p.name}>{p.name}</li>
-              ))}
-            </ul>
-          }
-        >
+        <HVPopover hiddenClose content={<PeersList peers={peers} />}>
           <button className="IconButton" title="Кол-во участников">
             <PeersCount count={peersCount} />
           </button>

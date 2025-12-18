@@ -1,0 +1,26 @@
+.ListItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.BoxIcon {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  &.color-green {
+    color: #34be09;
+  }
+  &.color-grey {
+    color: var(--gray-400);
+  }
+}
+
+.PeerName {
+  min-width: 0;
+  flex: 1 0 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
