@@ -7,8 +7,9 @@ const HVPopover: FC<{
   children: ReactElement;
   content: ReactElement;
   hiddenClose?: boolean;
-}> = ({ children, content, hiddenClose = false }) => (
-  <Popover.Root>
+  open?: boolean;
+}> = ({ children, content, hiddenClose = false, open }) => (
+  <Popover.Root open={open}>
     <Popover.Trigger asChild>{children}</Popover.Trigger>
     <Popover.Portal>
       <Popover.Content
