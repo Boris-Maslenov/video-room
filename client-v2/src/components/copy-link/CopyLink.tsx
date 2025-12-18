@@ -11,7 +11,7 @@ const iconSize = {
 const CopyLink: FC = () => {
   const [copyResult, setCopyResult] = useState<boolean>(false);
   const timerRef = useRef<number | null>(null);
-  const url = useMemo(() => window.location.href, []);
+  const url = useMemo(() => window.location.href, [window.location.href]);
 
   useEffect(() => {
     return () => {
