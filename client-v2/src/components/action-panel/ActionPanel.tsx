@@ -8,17 +8,16 @@ import {
   ScreenShareOffIcon,
   PhoneOff,
   ReverseCamIcon,
-  LinkIcon,
 } from "../icons";
 import PeersCount from "../peers-count/PeersCount";
 import { MicLevel } from "../mic-level/MicLevel";
 import HVPopover from "../shared/popover/Popover";
 import Timer from "../timer/Timer";
+import CopyLink from "../copy-link/CopyLink";
 
 import { useLongPress } from "../../hooks/useLongPress";
 import { RemotePeer } from "../../stores/MediasoupClientStore";
 import PeersList from "../peers-list/PeersList";
-import { CopyToClipboard } from "react-copy-to-clipboard";
 
 const iconSize = {
   width: "19px",
@@ -38,36 +37,6 @@ const ScreenSwitch: FC<{ on: boolean }> = ({ on }) => {
     <ScreenShareOnIcon {...iconSize} />
   ) : (
     <ScreenShareOffIcon {...iconSize} />
-  );
-};
-
-const CopyLink: FC = () => {
-  const [copyResut, setCopyResult] = useState<boolean>(false);
-  console.log("copyResut", copyResut);
-  return (
-    <HVPopover
-      hiddenClose
-      open={copyResut}
-      content={
-        <>{"Ссылка на видеовстречу успешно скопирована! Передайте ее другу."}</>
-      }
-    >
-      <div>
-        <CopyToClipboard
-          text={window.location.href}
-          onCopy={(_: string, result: boolean) => {
-            if (result) {
-              setCopyResult(result);
-              setTimeout(() => setCopyResult(false), 5000);
-            }
-          }}
-        >
-          <button className="IconButton" title="Поделиться ссылкой">
-            <LinkIcon {...iconSize} />
-          </button>
-        </CopyToClipboard>
-      </div>
-    </HVPopover>
   );
 };
 
