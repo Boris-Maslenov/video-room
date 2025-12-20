@@ -6,13 +6,13 @@ import { pick } from "../utils/dataUtils";
  * Создает нового пира (не подключает)
  */
 export const createPeer: (...args: HandleParameters<"createPeer">) => void =
-  async function (data, callback) {
+  async function (data, callback, _, socket) {
     try {
       const { roomId, name, micOn, camOn } = data;
       const peer = createPeerService(
         roomId,
         name,
-        this.id,
+        socket.id,
         false,
         micOn,
         camOn

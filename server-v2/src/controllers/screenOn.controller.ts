@@ -1,20 +1,18 @@
-import { Socket } from "socket.io";
-import { HandleParameters, ServerEvents } from "../types";
+import { HandleParameters } from "../types";
 import { getDefaultRoomData } from "../utils/dataUtils";
 
 /**
  * Клиент начал демонстрацию экрана
  */
 export const screenOn: (...args: HandleParameters<"screenOn">) => void =
-  async function (this: Socket<{}, ServerEvents>, data, callback) {
+  async function (data, callback, _, socket) {
     try {
-      const socket = this;
       const { peerId, roomId } = data;
       const { room, peer } = getDefaultRoomData(peerId, roomId);
       const screenProdId = peer.screenProducer.id;
       const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);
 
-      if (ids.length > 0) {
+      if (ids.length > 0 && socket) {
         socket.to(ids).emit("peer:screenOn", peer.id, screenProdId);
       }
 

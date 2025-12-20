@@ -1,4 +1,4 @@
-import { Socket } from "socket.io";
+import { Socket, Server } from "socket.io";
 import {
   Producer,
   Transport,
@@ -12,6 +12,9 @@ import {
 } from "mediasoup/node/lib/types";
 import { TransportParams } from "./utils/webRtcUtils";
 
+export type Io = Server<ClientEvents, ServerEvents>;
+export type S = Socket<ClientEvents, ServerEvents>;
+
 export type MediaKind = "audio" | "video";
 
 export interface SocketResponse<T = null> {
@@ -20,7 +23,7 @@ export interface SocketResponse<T = null> {
   error?: { message: string };
 }
 
-export type CreateRoomReq = never;
+export type CreateRoomReq = any;
 
 export type DefaultRoomData = {
   peerId: string;
@@ -76,7 +79,9 @@ export type ClientEvents = {
   ) => void;
   getRouterRtpCapabilities: (
     data: { roomId: string },
-    callback: (response: SocketResponse<RtpCapabilities>) => void
+    callback: (response: SocketResponse<RtpCapabilities>) => void,
+    io?: Io,
+    socket?: S
   ) => void;
   createSendTransport: (
     data: DefaultRoomData,
@@ -167,6 +172,10 @@ export type ClientEvents = {
   ) => void;
 };
 
+export type Routes<E extends keyof ClientEvents> = (
+  ...args: [...Parameters<ClientEvents[E]>, Server, Socket]
+) => void;
+
 export type ServerEvents = {
   "peer:camOff": (pId: string, prodId: string) => void;
   "peer:camOn": (pId: string, prodId: string) => void;
@@ -185,7 +194,8 @@ export type ServerEvents = {
 
 export type HandleParameters<T extends keyof ClientEvents> = [
   ...Parameters<ClientEvents[T]>,
-  socket?: Socket<ClientEvents>
+  io?: Io,
+  socket?: S
 ];
 
 export type MediaState = Record<"cam" | "mic" | "screen", boolean>;

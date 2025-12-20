@@ -1,11 +1,9 @@
-import { getPeer, getRoom, updatePeer } from "../models/room";
+import { getPeer, getRoom } from "../models/room";
 import { HandleParameters } from "../types";
 import { subscribeProdClose, subscribeProdQuaity } from "../utils/mediaUtils";
 
 export const produce: (...args: HandleParameters<"produce">) => void =
-  async function (data, callback) {
-    const socket = this;
-    const io = socket.nsp.server;
+  async function (data, callback, io) {
     const { roomId, peerId, kind, rtpParameters, appData } = data;
     // TODO: kind можно убрать. Актуально appData.source
     const { source } = appData;
@@ -22,7 +20,6 @@ export const produce: (...args: HandleParameters<"produce">) => void =
           });
 
           subscribeProdQuaity(room, peer, peer.videoProducer, "video", io);
-
           subscribeProdClose(room, peer, peer.videoProducer);
 
           callback?.({

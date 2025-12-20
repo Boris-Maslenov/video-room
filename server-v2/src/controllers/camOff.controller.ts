@@ -1,6 +1,5 @@
-import { Socket } from "socket.io";
-import { HandleParameters, ServerEvents } from "../types";
-import { getDefaultRoomData, log } from "../utils/dataUtils";
+import { HandleParameters } from "../types";
+import { getDefaultRoomData } from "../utils/dataUtils";
 import { safeClose } from "../utils/mediaUtils";
 import { updatePeer } from "../models/room";
 
@@ -8,9 +7,8 @@ import { updatePeer } from "../models/room";
  * Клиент выключил камеру
  */
 export const camOff: (...args: HandleParameters<"camOff">) => void =
-  async function (this: Socket<{}, ServerEvents>, data, callback) {
+  async function (data, callback, _, socket) {
     try {
-      const socket = this;
       const { peerId, roomId } = data;
       const { room, peer } = getDefaultRoomData(peerId, roomId);
       const producerId = peer.videoProducer.id;
@@ -19,7 +17,7 @@ export const camOff: (...args: HandleParameters<"camOff">) => void =
       safeClose(peer.videoProducer);
       updatePeer(roomId, { ...peer, camOn: false, videoProducer: null });
 
-      if (ids.length > 0) {
+      if (ids.length > 0 && socket) {
         socket.to(ids).emit("peer:camOff", peer.id, producerId);
       }
 

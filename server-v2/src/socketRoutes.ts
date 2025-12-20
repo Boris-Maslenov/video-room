@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import { ServerEvents, ClientEvents } from "./types";
+import { ServerEvents, ClientEvents, Routes } from "./types";
 import { log } from "./utils/dataUtils";
 import {
   createPeer,
@@ -46,7 +46,11 @@ const routes: Partial<ClientEvents> = {
   toggleMic,
 };
 
-const disconnect = (reason: string, io: Server, socket: Socket) => {
+const disconnect = (
+  reason: string,
+  io: Server,
+  socket: Socket<ClientEvents, ServerEvents>
+) => {
   log("disconnect: ", reason, socket.id, "red");
   const ids = Array.from(io.sockets.sockets.keys());
   log("all: ", ids, "red");
@@ -62,7 +66,9 @@ export const createSocketRouter = (io: Server) => {
     });
 
     for (const key in routes) {
-      socket.on(key as keyof ClientEvents, routes[key]);
+      socket.on(key as keyof ClientEvents, (...args: any[]) => {
+        routes[key](...args, io, socket);
+      });
     }
   });
 };

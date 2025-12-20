@@ -1,5 +1,5 @@
 import { HandleParameters } from "../types";
-import { getDefaultRoomData, log } from "../utils/dataUtils";
+import { getDefaultRoomData } from "../utils/dataUtils";
 
 export const createConsumer: (
   ...args: HandleParameters<"createConsumer">

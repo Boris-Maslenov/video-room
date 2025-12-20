@@ -7,11 +7,11 @@ import { pick } from "../utils/dataUtils";
  * после того как комната создана, пир создан и настало время сравнить rtpCapabilities роутера и клиента
  */
 export const joinRoom: (...args: HandleParameters<"joinRoom">) => void =
-  function (data, callback) {
+  function (data, callback, io) {
     try {
       const { peerId, roomId, rtpCapabilities } = data;
       const { peer, room } = joinRoomService(roomId, peerId, rtpCapabilities);
-      const socket = this;
+
       callback?.({
         ok: true,
         data: {
@@ -53,9 +53,8 @@ export const joinRoom: (...args: HandleParameters<"joinRoom">) => void =
       });
       const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);
 
-      if (ids.length > 0) {
-        socket.to(ids).emit("room:updateCount", ids.length); // всем кроме меня
-        socket.emit("room:updateCount", ids.length); // мне
+      if (ids.length > 0 && io) {
+        io.to(ids).emit("room:updateCount", ids.length);
       }
     } catch (err) {
       callback?.({

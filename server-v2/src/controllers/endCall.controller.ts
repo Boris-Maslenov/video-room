@@ -1,19 +1,15 @@
-import { Socket } from "socket.io";
 import { cleanupConsumers, safeClose } from "../utils/mediaUtils";
-import { HandleParameters, ServerEvents } from "../types";
+import { HandleParameters } from "../types";
 import { getDefaultRoomData } from "../utils/dataUtils";
 import { deletePeer } from "../models/room";
-import { log } from "../utils/dataUtils";
 
 /**
  * Клиент нажал кнопку завершить звонок
  */
 // TODO: рассмотреть объединение endCallController и closePeerController
 export const endCall: (...args: HandleParameters<"endCall">) => void =
-  async function (this: Socket<{}, ServerEvents>, data, callback) {
-    log(`endCall controller start`, "red");
+  async function (data, callback, _, socket) {
     try {
-      const socket = this;
       const { peerId, roomId } = data;
       const { room, peer } = getDefaultRoomData(peerId, roomId);
 
@@ -31,7 +27,7 @@ export const endCall: (...args: HandleParameters<"endCall">) => void =
 
       const ids = room.peers.filter((p) => p.isJoined).map((p) => p.socketId);
 
-      if (ids.length > 0) {
+      if (ids.length > 0 && socket) {
         socket.to(ids).emit("peer:closed", peer.id);
         socket.to(ids).emit("room:updateCount", ids.length);
       }

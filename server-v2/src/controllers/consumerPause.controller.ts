@@ -1,5 +1,4 @@
-import { Socket } from "socket.io";
-import { HandleParameters, ServerEvents } from "../types";
+import { HandleParameters } from "../types";
 import { getDefaultRoomData } from "../utils/dataUtils";
 
 /**
@@ -7,7 +6,7 @@ import { getDefaultRoomData } from "../utils/dataUtils";
  */
 export const consumerPause: (
   ...args: HandleParameters<"consumerPause">
-) => void = async function (this: Socket<{}, ServerEvents>, data, callback) {
+) => void = async function (data, callback) {
   try {
     const { peerId, roomId, consumerIds } = data;
     const { room } = getDefaultRoomData(

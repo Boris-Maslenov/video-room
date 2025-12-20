@@ -1,8 +1,7 @@
-import { HandleParameters, Peer } from "../types";
+import { HandleParameters } from "../types";
 import { createRoomService } from "../services/room.service";
-import { log, pick } from "../utils/dataUtils";
-import { findProducer, getRoom } from "../models/room";
-import { Socket } from "socket.io";
+import { pick } from "../utils/dataUtils";
+
 import { subscribeVolumes } from "../utils/mediaUtils";
 
 /**
@@ -10,10 +9,8 @@ import { subscribeVolumes } from "../utils/mediaUtils";
  */
 export const createRoom: (
   ...args: HandleParameters<"createRoom">
-) => Promise<void> = async function (this: Socket, _, callback) {
+) => Promise<void> = async function (_, callback, io) {
   try {
-    const socket = this;
-    const io = socket.nsp.server;
     const room = await createRoomService();
 
     // Отправляем индикатор говорящего всем пирам в комнате

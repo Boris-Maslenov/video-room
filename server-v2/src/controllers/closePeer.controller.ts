@@ -1,11 +1,11 @@
-import { Socket } from "socket.io";
 import { deletePeer, findPeerBySocketId, getRoom } from "../models/room";
 import { cleanupConsumers, safeClose } from "../utils/mediaUtils";
+import { S } from "../types";
 
 /**
  * Неожиданный обрыв сокета
  */
-export const closePeer: (socket: Socket) => boolean = (socket) => {
+export const closePeer: (socket: S) => boolean = (socket) => {
   try {
     const { id } = socket;
     const foundPeer = findPeerBySocketId(id);
