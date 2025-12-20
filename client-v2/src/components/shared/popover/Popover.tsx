@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { Popover } from "radix-ui";
+import { Popover as RadixPopover } from "radix-ui";
 import { ReactElement } from "react";
 import "./Popover.styles.scss";
 
@@ -9,10 +9,10 @@ const HVPopover: FC<{
   hiddenClose?: boolean;
   open?: boolean;
 }> = ({ children, content, hiddenClose = false, open }) => (
-  <Popover.Root open={open}>
-    <Popover.Trigger asChild>{children}</Popover.Trigger>
-    <Popover.Portal>
-      <Popover.Content
+  <RadixPopover.Root open={open}>
+    <RadixPopover.Trigger asChild>{children}</RadixPopover.Trigger>
+    <RadixPopover.Portal>
+      <RadixPopover.Content
         className="PopoverContent"
         sideOffset={10}
         avoidCollisions
@@ -21,14 +21,14 @@ const HVPopover: FC<{
       >
         <div className="PopoverContentInner">{content}</div>
         {!hiddenClose && (
-          <Popover.Close className="PopoverClose" aria-label="Close">
+          <RadixPopover.Close className="PopoverClose" aria-label="Close">
             x
-          </Popover.Close>
+          </RadixPopover.Close>
         )}
-        <Popover.Arrow className="PopoverArrow" />
-      </Popover.Content>
-    </Popover.Portal>
-  </Popover.Root>
+        <RadixPopover.Arrow className="PopoverArrow" />
+      </RadixPopover.Content>
+    </RadixPopover.Portal>
+  </RadixPopover.Root>
 );
 
 export default HVPopover;

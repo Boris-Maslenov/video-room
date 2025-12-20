@@ -1,13 +1,13 @@
 import { FC } from "react";
-import { Switch } from "radix-ui";
+import { Switch as RadixSwitch } from "radix-ui";
 import "./Switch.styles.scss";
 
-const VRSwitch: FC<Switch.SwitchProps> = ({ ...radixProps }) => (
+const Switch: FC<RadixSwitch.SwitchProps> = ({ ...radixProps }) => (
   <div className="Switch">
-    <Switch.Root className="SwitchRoot" {...radixProps}>
-      <Switch.Thumb className="SwitchThumb" />
-    </Switch.Root>
+    <RadixSwitch.Root className="SwitchRoot" {...radixProps}>
+      <RadixSwitch.Thumb className="SwitchThumb" />
+    </RadixSwitch.Root>
   </div>
 );
 
-export default VRSwitch;
+export default Switch;

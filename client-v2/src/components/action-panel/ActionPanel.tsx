@@ -18,7 +18,6 @@ import CopyLink from "../copy-link/CopyLink";
 import { useLongPress } from "../../hooks/useLongPress";
 import { RemotePeer } from "../../stores/MediasoupClientStore";
 import PeersList from "../peers-list/PeersList";
-import ScrollArea from "../shared/scroll-area/ScrollArea";
 
 const iconSize = {
   width: "19px",

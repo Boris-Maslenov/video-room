@@ -1,7 +1,7 @@
 import { FC } from "react";
 import "./Input.scss";
 import { ErrorIcon } from "../../icons";
-import VRTooltip from "../tooltip/Tooltip";
+import Tooltip from "../tooltip/Tooltip";
 
 export type InputProps = JSX.IntrinsicElements["input"] & {
   name: string;
@@ -13,9 +13,9 @@ const Input: FC<InputProps> = ({ error, ...props }) => {
     <div className="Input-wrapper">
       {error && (
         <div className="Input-error">
-          <VRTooltip message={error ?? ""}>
+          <Tooltip message={error ?? ""}>
             <ErrorIcon />
-          </VRTooltip>
+          </Tooltip>
         </div>
       )}
       <input {...props} />

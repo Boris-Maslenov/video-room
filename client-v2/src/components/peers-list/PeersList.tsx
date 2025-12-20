@@ -34,9 +34,7 @@ const PeersList: FC<{ peers: RemotePeer[] }> = ({ peers }) => {
     <div className="PeersListContainer">
       <ScrollArea>
         <ul className="PeersList">
-          {peers.map((p, i) => (
-            <Item key={i + p.id} peer={p} />
-          ))}
+          {peers.map((p, i) => <Item key={i + p.id} peer={p} />).sort()}
         </ul>
       </ScrollArea>
     </div>

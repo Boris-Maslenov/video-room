@@ -2,7 +2,7 @@ import "./MediaSettingsBlock.style.scss";
 import { FC } from "react";
 import { observer } from "mobx-react-lite";
 import { useDevicesStore } from "../../context/StoresProvider";
-import VRSelect from "../select/VRSelect";
+import VRSelect from "../shared/select/Select";
 import Loader from "../shared/loader/Loader";
 import { CamSwitch, MicSwitch } from "../action-panel/ActionPanel";
 
