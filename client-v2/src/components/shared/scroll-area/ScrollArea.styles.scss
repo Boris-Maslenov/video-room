@@ -1,0 +1,33 @@
+.ScrollAreaRoot {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  --scrollbar-size: 5px;
+}
+
+.ScrollAreaViewport {
+  width: 100%;
+  height: 100%;
+}
+
+.ScrollAreaScrollbar {
+  display: flex;
+  user-select: none;
+  touch-action: none;
+}
+
+.ScrollAreaScrollbar[data-orientation="vertical"] {
+  width: var(--scrollbar-size);
+}
+
+.ScrollAreaScrollbar[data-orientation="horizontal"] {
+  height: var(--scrollbar-size);
+}
+
+.ScrollAreaThumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: var(--scrollbar-size);
+  position: relative;
+  flex: 1;
+}

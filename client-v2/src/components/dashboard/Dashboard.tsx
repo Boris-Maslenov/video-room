@@ -11,6 +11,7 @@ import CreateRoomModal from "../modals/CreateRoomModal";
 import EnterRoomModal from "../modals/EnterRoomModal";
 import { setQueryParams } from "../../utils/setQueryParams";
 import { ROOM_QUERY_KEY } from "../../config";
+import ScrollArea from "../shared/scroll-area/ScrollArea";
 
 const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
   const devicesStore = useDevicesStore();
@@ -65,6 +66,15 @@ const Dashboard: FC<{ roomId?: string }> = ({ roomId }) => {
         >
           Подключиться
         </Button>
+        <div style={{ maxHeight: "100px" }}>
+          <ScrollArea>
+            <ul>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p, i) => (
+                <li key={i}>{p}</li>
+              ))}
+            </ul>
+          </ScrollArea>
+        </div>
       </div>
       {modal === "CreateRoomModal" && (
         <CreateRoomModal

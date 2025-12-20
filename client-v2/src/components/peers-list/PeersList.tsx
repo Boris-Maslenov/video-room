@@ -1,6 +1,7 @@
 import { FC } from "react";
 import { RemotePeer } from "../../stores/MediasoupClientStore";
 import { UserIcon, MicOffIcon, MicOnIcon } from "../icons";
+import ScrollArea from "../shared/scroll-area/ScrollArea";
 import "./PeersList.style.scss";
 
 const iconSize = {
@@ -31,11 +32,13 @@ const Item: FC<{ peer: RemotePeer }> = ({ peer }) => {
 const PeersList: FC<{ peers: RemotePeer[] }> = ({ peers }) => {
   return (
     <div className="PeersListContainer">
-      <ul className="PeersList">
-        {peers.map((p, i) => (
-          <Item key={i + p.id} peer={p} />
-        ))}
-      </ul>
+      <ScrollArea>
+        <ul className="PeersList">
+          {peers.map((p, i) => (
+            <Item key={i + p.id} peer={p} />
+          ))}
+        </ul>
+      </ScrollArea>
     </div>
   );
 };
