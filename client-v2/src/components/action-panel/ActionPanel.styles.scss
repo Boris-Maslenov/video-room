@@ -62,6 +62,9 @@
   }
 
   .ActionsPanel {
-    gap: 0px;
+    gap: 5px;
+    & > * {
+      gap: 5px;
+    }
   }
 }

@@ -1,7 +1,4 @@
-import {
-  ClientRemotePeer,
-  NetworkQuality,
-} from "../stores/MediasoupClientStore";
+import { ClientPeer, NetworkQuality } from "../stores/MediasoupClientStore";
 
 export const safeClose = (...objs: ({ close: () => void } | null)[]) => {
   for (const obj of objs) {
@@ -61,8 +58,8 @@ export const getPermissions = async (
 /**
  * Вернет пиров, распределенных по слайдам
  */
-export const getGroupShema = (peers: ClientRemotePeer[], maxCount: number) => {
-  let result: Record<number, ClientRemotePeer[]> = {};
+export const getGroupShema = (peers: ClientPeer[], maxCount: number) => {
+  let result: Record<number, ClientPeer[]> = {};
   let groups = 0;
   const len = peers.length;
 

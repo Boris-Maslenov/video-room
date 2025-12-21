@@ -62,7 +62,7 @@ const Room = () => {
         break;
       }
       default: {
-        console.warn("unnown action");
+        console.warn("unknown action");
       }
     }
   };
