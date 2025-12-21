@@ -1,5 +1,11 @@
 {
   "watch": ["src"],
   "ext": "ts",
-  "exec": "ts-node ./src/index.ts"
+  "exec": "ts-node ./src/index.ts",
+  "env": {
+    "NODE_ENV": "development",
+    "IP": "0.0.0.0",
+    "PORT": 3001,
+    "PUBLIC_IP": "217.114.8.81"
+  }
 }

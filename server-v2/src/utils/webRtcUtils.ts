@@ -15,27 +15,22 @@ export type TransportParams = {
   sctpParameters?: SctpParameters;
 };
 
+import { PUBLIC_IP } from "../config";
+
 type ReturnType = { transportParams: TransportParams; transport: Transport };
 
-const local = [
+const ips = [
   {
-    ip: "192.168.0.103",
-    announcedIp: "192.168.0.103",
+    ip: "0.0.0.0",
+    announcedIp: PUBLIC_IP,
   },
 ];
-
-// const vps = [
-//   {
-//     ip: "0.0.0.0",
-//     announcedIp: "217.114.8.81",
-//   },
-// ];
 
 export async function createWebRtcTransport(
   router: Router
 ): Promise<ReturnType> {
   const transport = await router.createWebRtcTransport({
-    listenIps: local,
+    listenIps: ips,
     enableUdp: true,
     enableTcp: true,
     preferUdp: true,

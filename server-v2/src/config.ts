@@ -2,7 +2,9 @@ import { RtpCodecCapability } from "mediasoup/node/lib/types";
 
 export const ROOM_ID = "0";
 
-export const WS_PORT = 3001;
+export const WS_PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
+
+export const PUBLIC_IP = process.env.PUBLIC_IP ?? "127.0.0.1";
 
 export const mediaCodecs: RtpCodecCapability[] = [
   {

@@ -12,11 +12,11 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "mediasoup": "^3.15.2",
-    "nodemon": "^3.1.7",
-    "socket.io": "^4.8.1"
+    "mediasoup": "3.15.2",
+    "nodemon": "3.1.7",
+    "socket.io": "4.8.1"
   },
   "devDependencies": {
-    "ts-node": "^10.9.2"
+    "ts-node": "10.9.2"
   }
 }
