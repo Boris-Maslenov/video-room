@@ -11,7 +11,7 @@ import Loader from "../shared/loader/Loader";
 const RootLayout: FC = () => {
   const mediaStore = useMediaSoupStore();
   const errorStore = useErrorStore();
-  const { sessionState } = mediaStore;
+  const sessionState = mediaStore.sessionState;
   const [roomId] = useParams(ROOM_QUERY_KEY);
 
   if (sessionState === "connecting") {

@@ -10,7 +10,7 @@ import {
 import { Socket } from "socket.io-client";
 import { socketPromise } from "../api/api";
 import { NetworkPeerStatus } from "./MediasoupClientStore";
-import { WS_IP } from "../config";
+import { WS_URL } from "../config";
 
 class SocketStore {
   root: RootStore;
@@ -22,7 +22,7 @@ class SocketStore {
 
   constructor(root: RootStore) {
     this.root = root;
-    this.socket = io(WS_IP, { autoConnect: false });
+    this.socket = io(WS_URL, { autoConnect: false });
     this.apiSend = socketPromise(this.socket);
     this.initial = false;
     makeAutoObservable(
@@ -35,7 +35,7 @@ class SocketStore {
         eventBus: false,
         initial: false,
       },
-      { autoBind: true }
+      { autoBind: true },
     );
   }
 
@@ -59,7 +59,7 @@ class SocketStore {
     this.socket.on("peer:toggleMic", this.handleToggleMic);
     this.socket.on(
       "peer:updateNetworkQuality",
-      this.handleUpdateNetworkQuality
+      this.handleUpdateNetworkQuality,
     );
     this.socket.on("room:updateCount", this.handleUpdateCount);
     this.socket.on("room:activeSpeaker", this.handleActiveSpeaker);
@@ -143,7 +143,7 @@ class SocketStore {
     this.socket.off("peer:toggleMic", this.handleToggleMic);
     this.socket.off(
       "peer:updateNetworkQuality",
-      this.handleUpdateNetworkQuality
+      this.handleUpdateNetworkQuality,
     );
     this.socket.off("room:updateCount", this.handleUpdateCount);
     this.socket.off("room:activeSpeaker", this.handleActiveSpeaker);

@@ -17,8 +17,6 @@ export type TransportParams = {
 
 import { PUBLIC_IP } from "../config";
 
-type ReturnType = { transportParams: TransportParams; transport: Transport };
-
 const ips = [
   {
     ip: "0.0.0.0",
@@ -27,13 +25,13 @@ const ips = [
 ];
 
 export async function createWebRtcTransport(
-  router: Router
-): Promise<ReturnType> {
+  router: Router,
+): Promise<{ transportParams: TransportParams; transport: Transport }> {
   const transport = await router.createWebRtcTransport({
     listenIps: ips,
     enableUdp: true,
-    enableTcp: true,
-    preferUdp: true,
+    enableTcp: false,
+    // preferUdp: true,
   });
 
   const transportParams = {
@@ -45,3 +43,24 @@ export async function createWebRtcTransport(
 
   return { transport, transportParams };
 }
+
+// todo: переделать архитектуру под новый стиль
+// главное преимущество, что в такой схеме множество транспортов обрабатываются через 1 порт, который мониторит сервер. 1 сервер на роутер(комнату)
+
+// const webRtcServer = await worker.createWebRtcServer({
+//   listenInfos: [
+//     {
+//       protocol: "udp",
+//       ip: "0.0.0.0",
+//       announcedAddress: PUBLIC_IP,
+//       portRange: { min: 40000, max: 40100 },
+//     },
+//     {
+//       protocol: "tcp",
+//       ip: "0.0.0.0",
+//       announcedAddress: PUBLIC_IP,
+//       portRange: { min: 40000, max: 40100 },
+//     },
+//   ]
+// });
+// router.createWebRtcTransport({ webRtcServer })

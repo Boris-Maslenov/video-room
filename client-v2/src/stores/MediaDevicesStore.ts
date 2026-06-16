@@ -84,7 +84,7 @@ class MediaDevicesStore {
        */
       const { cam: camEnable, mic: micEnable } = await getPermissions(
         hasAudio,
-        hasVideo
+        hasVideo,
       );
       const allMediaDevices =
         (await navigator.mediaDevices?.enumerateDevices()) ?? [];
@@ -95,7 +95,7 @@ class MediaDevicesStore {
         this.allowCam = camEnable;
         this.cams = this.allMediaDevices.filter((d) => d.kind === "videoinput");
         this.mics = this.allMediaDevices.filter(
-          (d) => d.kind === "audioinput" && d.deviceId !== "communications"
+          (d) => d.kind === "audioinput" && d.deviceId !== "communications",
         );
 
         if (this.camOn && !this.allowCam) {
@@ -252,7 +252,7 @@ class MediaDevicesStore {
 
     if (on) {
       const screenStream = await navigator.mediaDevices.getDisplayMedia(
-        getScreenShareConstraints()
+        getScreenShareConstraints(),
       );
 
       const screenTrack = screenStream.getVideoTracks()[0];
@@ -274,14 +274,14 @@ class MediaDevicesStore {
    */
   async changeDevice(deviceId: string, type: "audioinput" | "videoinput") {
     const findSelectedDev = this.allMediaDevices.find(
-      (d) => d.deviceId === deviceId
+      (d) => d.deviceId === deviceId,
     );
 
     if (!findSelectedDev) {
       const error = new Error(
         `Ошибка выбора ${
           type === "audioinput" ? "микрофона" : "камеры"
-        }: устройство не найдено`
+        }: устройство не найдено`,
       );
       this.root.error.setError(error);
       throw error;
@@ -312,7 +312,7 @@ class MediaDevicesStore {
       } catch (err) {
         if (err instanceof Error) {
           this.root.error.setError(
-            `Ошибка выбора микрофона ${findSelectedDev.label}. ${err.message}`
+            `Ошибка выбора микрофона ${findSelectedDev.label}. ${err.message}`,
           );
         }
         // Откат на старое устройство
@@ -352,13 +352,13 @@ class MediaDevicesStore {
           video: getVideoConstraints(
             true,
             findSelectedDev.deviceId,
-            this.facingMode
+            this.facingMode,
           ),
         });
       } catch (err) {
         if (err instanceof Error) {
           this.root.error.setError(
-            `Ошибка выбора камеры ${findSelectedDev.label}. ${err.message}`
+            `Ошибка выбора камеры ${findSelectedDev.label}. ${err.message}`,
           );
         }
         // Откат на старое устройство
@@ -371,7 +371,7 @@ class MediaDevicesStore {
 
       if (!newTrack) {
         const error = new Error(
-          `Не смог взять трек с устройства ${findSelectedDev.label}`
+          `Не смог взять трек с устройства ${findSelectedDev.label}`,
         );
         this.root.error.setError(error);
         throw error;
@@ -410,15 +410,15 @@ class MediaDevicesStore {
           this.selectedMic = null;
           // трек никогда не возобновится, выключаем микрофон
           this.root.mediaSoupClient.toggleMic(false);
-          track.getSettings().deviceId;
+          // track.getSettings().deviceId;
           this.root.error.setError(
             new Error(
               `Аудио поток c устройства ${
                 this.allMediaDevices.find(
-                  (d) => d.deviceId === track.getSettings().deviceId
+                  (d) => d.deviceId === track.getSettings().deviceId,
                 )?.label ?? ""
-              } внезапно остановился, возможно нужно разрешить использование микрофона в браузере`
-            )
+              } внезапно остановился, возможно нужно разрешить использование микрофона в браузере`,
+            ),
           );
         }
 
@@ -441,10 +441,10 @@ class MediaDevicesStore {
             new Error(
               `Видео поток c устройства ${
                 this.allMediaDevices.find(
-                  (d) => d.deviceId === track.getSettings().deviceId
+                  (d) => d.deviceId === track.getSettings().deviceId,
                 )?.label ?? ""
-              } внезапно остановился, возможно нужно разрешить использование камеры в браузере`
-            )
+              } внезапно остановился, возможно нужно разрешить использование камеры в браузере`,
+            ),
           );
         }
 
@@ -468,7 +468,7 @@ class MediaDevicesStore {
 
   async camReverce() {
     const allVideoDevices = this.allMediaDevices.filter(
-      (d) => d.kind === "videoinput"
+      (d) => d.kind === "videoinput",
     );
 
     if (allVideoDevices.length <= 1) {
@@ -477,7 +477,7 @@ class MediaDevicesStore {
     }
 
     const currentVidDev = allVideoDevices.find(
-      (d) => d.deviceId === this.selectedCam
+      (d) => d.deviceId === this.selectedCam,
     );
 
     if (!currentVidDev) {
@@ -486,7 +486,7 @@ class MediaDevicesStore {
     }
 
     const currentIdx = allVideoDevices.findIndex(
-      (d) => d.deviceId === currentVidDev.deviceId
+      (d) => d.deviceId === currentVidDev.deviceId,
     );
     const nextIdx =
       currentIdx < allVideoDevices.length - 1 ? currentIdx + 1 : 0;
@@ -507,7 +507,7 @@ class MediaDevicesStore {
 
   getMediaTracks() {
     return [this.videoTrack, this.audioTrack].filter(
-      Boolean
+      Boolean,
     ) as MediaStreamTrack[];
   }
 

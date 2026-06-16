@@ -21,7 +21,7 @@ const Participant: FC<{ peer: ClientPeer }> = observer(({ peer }) => {
   const isSelf = !!peer.isSelf;
   const videoTrack = stream.getVideoTracks()[0];
   const videoConsumer = peer.consumers.find(
-    (c) => c.appData.source === "video"
+    (c) => c.appData.source === "video",
   );
   const videoConsumerIsPaused = videoConsumer?.paused === true;
   const isActiveSpeaker =
@@ -42,9 +42,11 @@ const Participant: FC<{ peer: ClientPeer }> = observer(({ peer }) => {
   const networkQ = calcNetworkQuality(
     Math.min(
       ...Object.values(
-        isSelf ? mediaSoupStore.networkQuality || {} : peer.networkQuality || {}
-      )
-    )
+        isSelf
+          ? mediaSoupStore.networkQuality || {}
+          : peer.networkQuality || {},
+      ),
+    ),
   );
 
   useEffect(() => {
@@ -61,7 +63,7 @@ const Participant: FC<{ peer: ClientPeer }> = observer(({ peer }) => {
     }
   }, [videoTrack]);
 
-  // дожидаемся первого кадра перед показои видео
+  // дожидаемся первого кадра перед показом видео
   useEffect(() => {
     if (videoConsumerIsPaused || !videoConsumer) {
       setIsVideoLoaded(false);
@@ -86,13 +88,11 @@ const Participant: FC<{ peer: ClientPeer }> = observer(({ peer }) => {
         "audio-active": isActiveSpeaker,
       })}
     >
-      {true && (
-        <div className="LowSignalBlock">
-          <div className={classNames("quality", networkQ)}>
-            <QualitySignalIcon quality={networkQ} />
-          </div>
+      <div className="LowSignalBlock">
+        <div className={classNames("quality", networkQ)}>
+          <QualitySignalIcon quality={networkQ} />
         </div>
-      )}
+      </div>
       {isViewLoader ? <Loader /> : <ParticipantLabel />}
       <MediaRenderer ref={mediaElRef} />
       <ParticipantInfo name={peer.name} micState={peer.micOn} />
